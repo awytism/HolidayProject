@@ -10,6 +10,26 @@ Double-click `start.bat` or run:
 start.bat
 ```
 
+## macOS
+
+Install Node.js `22.13.0` or newer, then run the dedicated macOS launcher from Terminal:
+
+```bash
+chmod +x start-macos.sh
+./start-macos.sh
+```
+
+The launcher verifies macOS and the Node.js version, installs production dependencies when the current `node_modules` is missing or belongs to another operating system, prepares the writable data directories, and starts the app on the fixed port `4177`. Open `http://localhost:4177` and press Control-C in Terminal to stop it.
+
+To use another fixed port or a Node.js installation that is not on `PATH`:
+
+```bash
+PORT=5177 ./start-macos.sh
+GRAMADO_NODE_BIN="$HOME/.nvm/versions/node/v22.13.1/bin/node" ./start-macos.sh
+```
+
+Apple Silicon Homebrew installations commonly place Node.js at `/opt/homebrew/bin/node`; Intel Homebrew installations commonly use `/usr/local/bin/node`.
+
 ## Ubuntu, Debian, or Fedora
 
 The Linux launcher installs a system-level systemd unit. The service runs as the non-root user who invokes the launcher, or as `SUDO_USER` when the whole command is run through `sudo`. Running it without a leading `sudo` is recommended; the launcher requests elevation only for systemd and permission changes.

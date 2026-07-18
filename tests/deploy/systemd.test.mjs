@@ -36,6 +36,21 @@ test("Windows launcher uses the fixed default and validates native dependencies"
   assert.match(launcher, /GRAMADO_STRICT_PORT=1/);
 });
 
+test("macOS launcher validates the platform and native dependencies", async () => {
+  const launcher = await readProjectFile("start-macos.sh");
+
+  assert.match(launcher, /^#!\/usr\/bin\/env bash$/m);
+  assert.match(launcher, /^set -Eeuo pipefail$/m);
+  assert.match(launcher, /uname -s.*Darwin/);
+  assert.match(launcher, /Node\.js 22\.13 or newer/);
+  assert.match(launcher, /require\("express"\); require\("sharp"\)/);
+  assert.match(launcher, /NPM_BIN.*ci --omit=dev/);
+  assert.match(launcher, /PORT="\$\{PORT:-4177\}"/);
+  assert.match(launcher, /GRAMADO_STRICT_PORT=1/);
+  assert.match(launcher, /scripts\/start-server\.mjs/);
+  assert.match(launcher, /TRIPBOARD_MACOS_LAUNCHER_END/);
+});
+
 test("systemd template runs hardened as a non-root application user", async () => {
   const unit = await readProjectFile("deploy/systemd/gramado-tripboard.service.template");
 
