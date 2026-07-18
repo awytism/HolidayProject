@@ -1,0 +1,179 @@
+# Starting Tripboard
+
+Tripboard requires Node.js `22.13.0` or newer. Both launchers use port `4177` by default and fail clearly if it is occupied instead of silently choosing a port that does not match Nginx.
+
+## Windows 11
+
+Double-click `start.bat` or run:
+
+```bat
+start.bat
+```
+
+## Ubuntu, Debian, or Fedora
+
+The Linux launcher installs a system-level systemd unit. The service runs as the non-root user who invokes the launcher, or as `SUDO_USER` when the whole command is run through `sudo`. Running it without a leading `sudo` is recommended; the launcher requests elevation only for systemd and permission changes.
+
+```bash
+chmod +x start.sh
+./start.sh
+```
+
+With no subcommand, `start` is used. It checks Node and native dependencies, replaces incompatible `node_modules` when necessary, installs or updates `/etc/systemd/system/gramado-tripboard.service`, enables it for reboot, starts it, and waits for `GET /api/document` to return successfully.
+
+Available commands:
+
+```bash
+./start.sh start
+./start.sh stop
+./start.sh restart
+./start.sh status
+./start.sh logs
+```
+
+`stop` sends `SIGTERM` and systemd allows up to 30 seconds for graceful shutdown. The service is configured with `Restart=on-failure`, writes stdout and stderr to the journal, survives SSH logout, and remains enabled across reboots.
+
+If Node is installed in a user-specific location such as `nvm`, invoke `start.sh` as that user. If necessary, provide its absolute path:
+
+```bash
+GRAMADO_NODE_BIN="$HOME/.nvm/versions/node/v22.13.1/bin/node" ./start.sh
+```
+
+The application directory must be readable by the service user. The launcher creates `data/`, `data/uploads/`, and the protected `data/attachments/` store, makes their contents owned and writable by that user, and keeps the rest of the application read-only inside the service sandbox.
+
+## Environment And Ports
+
+The systemd service reads environment values from `.env` and then `data/runtime.env`; values in the runtime file take precedence. Keep secrets in `.env` and restrict that file to the service user.
+
+The fixed port is stored as `PORT` in `data/runtime.env` and reused on later starts. To deliberately use another fixed port, provide it explicitly:
+
+```bash
+PORT=5177 ./start.sh restart
+```
+
+Without a shell override, edit `.env` before the first start. Invalid or privileged ports are rejected, and an occupied port stops startup with a clear error. If the port is changed, update Nginx to the same value.
+
+The server binds to `127.0.0.1` by default. Set `GRAMADO_HOST` to a valid IP address or hostname only when another interface is intentionally required, for example `GRAMADO_HOST=0.0.0.0` to opt in to all IPv4 interfaces.
+
+Attachments default to a 50 MB per-file limit and a 2 GB total storage limit. Override `GRAMADO_MAX_ATTACHMENT_BYTES` or `GRAMADO_MAX_ATTACHMENT_STORAGE_BYTES` with integer byte counts when the deployment needs different ceilings; the total must be at least the per-file limit. Keep Nginx's `client_max_body_size` slightly above the per-file limit.
+
+For a reverse proxy deployment, `.env` will normally include:
+
+```dotenv
+NODE_ENV=production
+GRAMADO_TRUST_PROXY_HOPS=1
+```
+
+## Nginx
+
+The example virtual host at `deploy/nginx/gramado-tripboard.conf.example` already uses the default port `4177`. Confirm the persisted value after the first start:
+
+```bash
+cat data/runtime.env
+```
+
+If you deliberately selected another port, set the example's upstream to that value. Replace `tripboard.example.com`, install the file using the Nginx layout for your distribution, and validate before reloading:
+
+```bash
+sudo nginx -t
+sudo systemctl reload nginx
+```
+
+The persisted fixed port remains in use across updates and restarts.
+
+## Verification
+
+Inspect the rendered unit and verify its syntax after installation:
+
+```bash
+sudo systemd-analyze verify /etc/systemd/system/gramado-tripboard.service
+sudo systemd-analyze security gramado-tripboard.service
+systemctl is-enabled gramado-tripboard.service
+systemctl is-active gramado-tripboard.service
+curl --fail http://127.0.0.1:"$(sed -n 's/^PORT=//p' data/runtime.env)"/api/document >/dev/null
+```
+
+`systemd-analyze security` is advisory and may report exposure required for Node.js or for reading an application installed under a home directory. Use `./start.sh status` and `./start.sh logs` for operational diagnosis.
+
+## Safe Manual SFTP Release
+
+Build the code-only release locally:
+
+```bash
+npm run release
+```
+
+The generated `release/gramado-tripboard-2.1.0.tar.gz` contains source, public assets, scripts, deployment files, documentation, package manifests, and `RELEASE-MANIFEST.sha256`. It never contains `data/`, `.env`, `node_modules/`, uploaded media, attachments, or runtime configuration.
+
+Upload the archive by SFTP to a temporary VPS directory. Resolve the active application directory instead of assuming it:
+
+```bash
+APP_DIR="$(systemctl show gramado-tripboard.service -p WorkingDirectory --value)"
+test -n "$APP_DIR" && test -d "$APP_DIR/data"
+```
+
+Create the paired code-and-data backup during a maintenance window:
+
+```bash
+STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
+BACKUP="$(dirname "$APP_DIR")/gramado-backups/$STAMP"
+mkdir -p "$BACKUP"
+cd "$APP_DIR"
+./start.sh stop
+cp -a data "$BACKUP/data"
+cp -a .env "$BACKUP/.env"
+tar --exclude='./data' --exclude='./node_modules' --exclude='./release' --exclude='./.env' -czf "$BACKUP/code.tar.gz" .
+find data/uploads data/attachments -type f -print0 | sort -z | xargs -0 sha256sum > "$BACKUP/persistent-files.sha256"
+sha256sum data/gramado.sqlite "$BACKUP/code.tar.gz" > "$BACKUP/backup.sha256"
+```
+
+Extract the uploaded release into a staging directory, verify it, and run schema v5 against a disposable database copy:
+
+```bash
+STAGE="/tmp/gramado-tripboard-$STAMP"
+mkdir -p "$STAGE"
+tar -xzf /tmp/gramado-tripboard-2.1.0.tar.gz -C "$STAGE" --strip-components=1
+cd "$STAGE"
+sha256sum -c RELEASE-MANIFEST.sha256
+cp "$BACKUP/data/gramado.sqlite" "/tmp/gramado-preflight-$STAMP.sqlite"
+node scripts/preflight-migration.mjs --database "/tmp/gramado-preflight-$STAMP.sqlite"
+```
+
+Only after preflight passes, synchronize code-controlled roots. These commands do not address `data/` or `.env`:
+
+```bash
+for path in deploy docs public scripts src; do
+  rsync -a --delete "$STAGE/$path/" "$APP_DIR/$path/"
+done
+for file in .env.example CONTEXT.md package-lock.json package.json start.sh STARTING.md; do
+  cp "$STAGE/$file" "$APP_DIR/$file"
+done
+cd "$APP_DIR"
+npm ci --omit=dev
+./start.sh start
+```
+
+Verify the service, migrated document, persistent files, and cache behavior:
+
+```bash
+PORT="$(sed -n 's/^PORT=//p' data/runtime.env)"
+curl --fail "http://127.0.0.1:$PORT/api/document" | node -e 'let b="";process.stdin.on("data",c=>b+=c).on("end",()=>{const d=JSON.parse(b);if(d.document.schemaVersion!==5)process.exit(1)})'
+sha256sum -c "$BACKUP/persistent-files.sha256"
+curl -I "http://127.0.0.1:$PORT/client/main.js"
+./start.sh status
+```
+
+The static response must include `Cache-Control: public, max-age=0, must-revalidate`. Confirm Transport, Stay, and Agenda; Cover Images; protected Attachments; Maps and Website Links; and editing before ending maintenance.
+
+If verification fails, stop the new service and restore the matching pair. Never start the previous code against the schema v5 database:
+
+```bash
+cd "$APP_DIR"
+./start.sh stop
+rm -rf src public scripts deploy docs
+tar -xzf "$BACKUP/code.tar.gz" -C "$APP_DIR"
+rm -rf data
+cp -a "$BACKUP/data" "$APP_DIR/data"
+cp -a "$BACKUP/.env" "$APP_DIR/.env"
+./start.sh start
+```

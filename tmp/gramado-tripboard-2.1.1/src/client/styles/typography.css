@@ -1,0 +1,28 @@
+.font-controls { display: inline-flex; overflow: hidden; border: 1px solid var(--line); border-radius: 11px; background: var(--surface); }
+.font-button { min-width: 36px; height: 40px; padding: 0 8px; border: 0; background: transparent; color: var(--text); font-size: .875rem; font-weight: 700; }
+.font-button + .font-button { border-left: 1px solid var(--line); }
+.font-button:hover:not(:disabled) { background: var(--primary-soft); color: var(--primary-dark); }
+.font-button:disabled { color: var(--faint); cursor: not-allowed; }
+.provider small,.duration-pill,.route-point small,.detail-strip,.stay-copy > small,.stay-dates small,.block-label,.day-header small,.meal small,.place-copy small { font-size: var(--text-caption); }
+.provider strong,.route-point b,.stay-dates strong,.place-copy strong,.meal span,.day-note,.simple-list li,.essential-list dd,.essential-list dt { font-size: var(--text-small); }
+.location-line,.note-block p,.stay-copy > p { font-size: var(--text-body); }
+.text-button,.nav-item,.palette-picker,.block-toolbar button,.add-options button,.inline-add,.nested-toolbar button { font-size: var(--text-small); }
+.edit-form label,.auth-dialog label { font-size: var(--text-small); }
+.edit-form input,.edit-form textarea,.edit-form select,.place-editor input,.place-editor textarea,.password-row input,.template-search,.media-form input,.media-form select { font-size: var(--text-body); line-height: 1.45; }
+.edit-form input,.password-row input { min-height: 44px; }
+.content-block h3,.block-color-header h3,.generic-card h3,.amenity-card h3,.anatomy-card h3,.list-card h3,.saved-places h3 { font-size: var(--text-large); }
+.day-header h3,.link-block h3 { font-size: var(--text-medium); }
+.route-point strong { font-size: calc(1.8125rem * var(--font-scale)); }
+.day-date strong,.stat strong { font-size: var(--text-large); }
+.section-heading h2 { font-size: clamp(calc(1.75rem * var(--font-scale)),4vw,calc(2.625rem * var(--font-scale))); }
+.stay-copy h3 { font-size: clamp(calc(1.875rem * var(--font-scale)),5vw,calc(3rem * var(--font-scale))); }
+.auth-dialog h2 { font-size: calc(1.875rem * var(--font-scale)); }
+.property-pills span,.area-pill,.amenity-selected > span,.duration-pill { font-size: var(--text-small); }
+.attachment-section,.attachment-action-dialog,.attachment-viewer,.tooltip-icon { font-size: var(--text-body); }
+.eyebrow,.section-heading p,.media-limit,.add-block > span,.template-card .template-action { font-size: .75rem; }
+.scroll-top { position: fixed; z-index: 70; right: max(22px,env(safe-area-inset-right)); bottom: max(22px,env(safe-area-inset-bottom)); display: grid; width: 46px; height: 46px; place-items: center; border: 1px solid var(--line); border-radius: 50%; background: var(--text); color: var(--surface); box-shadow: var(--shadow-hover); opacity: 0; pointer-events: none; transform: translateY(10px); transition: opacity 160ms ease,transform 160ms ease; }
+.scroll-top.is-visible { opacity: 1; pointer-events: auto; transform: translateY(0); }
+.scroll-top svg { width: 20px; }
+#topSentinel { height: 1px; }
+@media (max-width:600px) { .font-controls { order: -1; }.font-button { min-width: 32px; height: 38px; }.scroll-top { right: 16px; bottom: 16px; } }
+@media (prefers-reduced-motion:reduce) { .scroll-top { transition: none; } }

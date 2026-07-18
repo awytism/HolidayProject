@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-labelledby="la-holidays-favicon-title la-holidays-favicon-desc">
+  <title id="la-holidays-favicon-title">L&amp;A Holidays</title>
+  <desc id="la-holidays-favicon-desc">An ascending airplane inside a broad rounded heart.</desc>
+  <style>
+    .heart,.plane { stroke-width: 1.6; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+    .heart { fill: #eee8f8; stroke: #8c78bd; }
+    .plane { fill: none; stroke: #65518f; stroke-linecap: round; }
+    @media (prefers-color-scheme: dark) { .heart { fill: #332b43; stroke: #b7a4da; } .plane { stroke: #d1c2e9; } }
+  </style>
+  <path class="heart" d="M48 21C43 12.5 36.5 9 29.5 9 16 9 5 20 5 33c0 16 6.5 25 17.8 34C30 73.5 39.5 80.5 48 87c8.5-6.5 18-13.5 25.2-20C84.5 58 91 49 91 33 91 20 80 9 66.5 9 59.5 9 53 12.5 48 21Z"/>
+  <path class="plane" aria-hidden="true" transform="translate(28.8 28.8) scale(1.6) rotate(-35 12 12)" d="M16 10h4a2 2 0 0 1 0 4h-4l-4 7H9l2-7H6l-2 2H2l1-4-1-4h2l2 2h5L9 3h3l4 7Z"/>
+</svg>

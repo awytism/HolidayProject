@@ -1,0 +1,61 @@
+.block-frame.has-attachments { overflow: hidden; border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); }
+.block-frame.has-attachments > .content-block { border-bottom-right-radius: 0; border-bottom-left-radius: 0; box-shadow: none; }
+.block-frame.has-cover.has-attachments > .block-cover { border-bottom-left-radius: 0; }
+.block-frame.has-attachments > .attachment-section,.block-frame.has-attachments > .attachment-section.is-locked > button { border-radius: 0; }
+.editor-block:hover .block-frame.has-attachments { box-shadow: var(--shadow-hover); }
+.attachment-section { grid-column: 1 / -1; padding: 0; border: 0; border-radius: 0 0 var(--radius) var(--radius); background: color-mix(in srgb,var(--primary-soft) 15%,var(--surface)); font-family: "Roboto",sans-serif; }
+.attachment-summary { display: flex; width: 100%; align-items: center; gap: 10px; padding: 13px 17px; border: 0; background: color-mix(in srgb,var(--primary-soft) 33%,var(--surface)); color: var(--muted); text-align: left; }
+.attachment-summary:hover { background: color-mix(in srgb,var(--primary-soft) 50%,var(--surface)); color: var(--text); }
+.attachment-summary > svg { width: 18px; flex: 0 0 18px; color: var(--primary); }
+.attachment-summary-copy { min-width: 0; flex: 1; }
+.attachment-summary-copy strong,.attachment-summary-copy small { display: block; font-size: var(--text-small); }
+.attachment-summary-copy small { margin-top: 2px; color: var(--muted); font-size: var(--text-caption); }
+.attachment-summary-chevron { display: grid; width: 28px; height: 28px; flex: 0 0 28px; place-items: center; border-radius: 50%; background: var(--surface-soft); color: var(--primary-dark); transition: transform 160ms ease; }
+.attachment-summary-chevron svg { width: 14px; }
+.attachment-section.is-expanded .attachment-summary-chevron { transform: rotate(180deg); }
+.attachment-panel { padding: 0 18px 15px; }
+.attachment-panel-actions { display: flex; justify-content: flex-end; margin-bottom: 10px; }
+.attachment-upload { display: inline-flex; min-height: 36px; align-items: center; gap: 7px; padding: 0 10px; border: 1px solid var(--line); border-radius: 9px; background: color-mix(in srgb,var(--primary-soft) 85%,var(--surface)); color: var(--primary-dark); cursor: pointer; font-size: var(--text-small); font-weight: 700; }
+.attachment-upload-group { display: flex; align-items: flex-end; flex-direction: column; gap: 3px; }
+.attachment-upload-group > small { color: var(--muted); font-size: var(--text-caption); }
+.attachment-upload svg { width: 16px; }
+.attachment-upload input,.attachment-replace input { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); clip-path: inset(50%); white-space: nowrap; }
+.attachment-list { display: grid; gap: 7px; }
+.attachment-empty { margin: 0; color: var(--muted); font-size: var(--text-small); }
+.attachment-row { display: flex; min-width: 0; align-items: center; gap: 7px; padding: 7px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface-soft); }
+.attachment-open { display: flex; min-width: 0; flex: 1; align-items: center; gap: 9px; padding: 2px; border: 0; background: transparent; color: var(--text); text-align: left; }
+.attachment-open > svg { width: 20px; flex: 0 0 20px; color: var(--primary); }
+.attachment-open > span { min-width: 0; }
+.attachment-open strong,.attachment-open small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.attachment-open strong { font-size: var(--text-small); }
+.attachment-open small { margin-top: 2px; color: var(--muted); font-size: var(--text-caption); }
+.attachment-edit-controls { display: flex; gap: 4px; }
+.attachment-edit-controls .toolbar-icon { position: relative; display: grid; width: 31px; height: 31px; place-items: center; padding: 0; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--muted); cursor: pointer; }
+.attachment-edit-controls .toolbar-icon svg { width: 15px; pointer-events: none; }
+.attachment-edit-controls .toolbar-icon:last-child { color: var(--pink); }
+.attachment-action-dialog { width: min(430px,calc(100% - 28px)); padding: 30px; border: 1px solid var(--line); border-radius: 22px; background: var(--surface); color: var(--text); font-family: "Roboto",sans-serif; box-shadow: 0 30px 90px rgba(0,0,0,.3); }
+.attachment-action-dialog::backdrop,.attachment-viewer::backdrop { background: rgba(16,14,24,.72); backdrop-filter: blur(7px); }
+.attachment-action-dialog > small { color: var(--primary); font-size: var(--text-caption); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.attachment-action-dialog h2 { margin: 7px 36px 20px 0; overflow-wrap: anywhere; font-size: var(--text-large); }
+.attachment-choice-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.attachment-choice-row button { display: flex; min-height: 82px; align-items: center; justify-content: center; flex-direction: column; gap: 8px; border: 1px solid var(--line); border-radius: 14px; background: var(--surface-soft); color: var(--text); font-size: var(--text-small); font-weight: 700; }
+.attachment-choice-row button:hover:not(:disabled) { border-color: var(--primary); background: var(--primary-soft); }
+.attachment-choice-row button:disabled { color: var(--faint); cursor: not-allowed; }
+.attachment-choice-row svg { width: 22px; }
+.attachment-viewer { width: min(1180px,calc(100% - 24px)); height: min(850px,calc(100% - 24px)); padding: 0; overflow: hidden; border: 1px solid var(--line); border-radius: 20px; background: var(--surface); color: var(--text); font-family: "Roboto",sans-serif; box-shadow: 0 30px 90px rgba(0,0,0,.45); }
+.attachment-viewer > header { display: flex; min-height: 68px; align-items: center; justify-content: space-between; gap: 15px; padding: 10px 16px; border-bottom: 1px solid var(--line); }
+.attachment-viewer > header small,.attachment-viewer > header strong { display: block; }
+.attachment-viewer > header small { color: var(--muted); font-size: var(--text-caption); }
+.attachment-viewer > header strong { max-width: min(520px,45vw); overflow: hidden; font-size: var(--text-small); text-overflow: ellipsis; white-space: nowrap; }
+.attachment-viewer nav { display: flex; align-items: center; gap: 5px; }
+.attachment-viewer nav button { display: grid; width: 36px; height: 36px; place-items: center; border: 1px solid var(--line); border-radius: 9px; background: var(--surface-soft); color: var(--text); }
+.attachment-viewer nav button:disabled { color: var(--faint); }
+.attachment-viewer nav svg { width: 17px; }
+.attachment-viewer nav span { min-width: 44px; color: var(--muted); font-size: var(--text-caption); text-align: center; }
+.attachment-viewer-body { display: grid; height: calc(100% - 68px); place-items: center; overflow: auto; padding: 18px; background: color-mix(in srgb,var(--bg) 82%,#000 5%); }
+.attachment-viewer-body img { max-width: 100%; max-height: 100%; object-fit: contain; transform-origin: center; transition: transform 120ms ease; }
+.attachment-viewer-body iframe { width: 100%; height: 100%; border: 0; background: #fff; }
+.attachment-viewer-body pre { width: min(900px,100%); min-height: 100%; margin: 0; padding: 20px; overflow-wrap: anywhere; border-radius: 12px; background: var(--surface); color: var(--text); font-family: ui-monospace,Consolas,monospace; font-size: var(--text-small); white-space: pre-wrap; transform-origin: top center; }
+.attachment-viewer-body video { max-width: 100%; max-height: 100%; }
+.attachment-viewer-body audio { width: min(620px,100%); }
+@media(max-width:650px){.attachment-viewer{width:100%;height:100%;max-width:none;max-height:none;border:0;border-radius:0}.attachment-viewer>header{align-items:flex-start;flex-direction:column}.attachment-viewer>header strong{max-width:85vw}.attachment-viewer-body{height:calc(100% - 116px);padding:10px}.attachment-choice-row{grid-template-columns:1fr}.attachment-panel-actions{justify-content:flex-start}.attachment-row{align-items:flex-start}.attachment-edit-controls{flex-wrap:wrap}}

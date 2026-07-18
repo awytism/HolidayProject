@@ -1,0 +1,89 @@
+:root {
+  color-scheme: light;
+  --bg: #f8f6fb;
+  --surface: #fffefe;
+  --surface-soft: #f7f3fa;
+  --text: #29263a;
+  --muted: #716d80;
+  --faint: #9c97aa;
+  --line: #e3ddec;
+  --primary: #8c78bd;
+  --primary-dark: #65518f;
+  --primary-soft: #eee8f8;
+  --brand-heart-fill: var(--primary-soft);
+  --brand-heart-line: var(--primary);
+  --brand-plane: var(--primary-dark);
+  --blue: #6f9fc6;
+  --blue-soft: #e6f2fa;
+  --pink: #cd88a5;
+  --pink-soft: #fae8f0;
+  --priority-high: color-mix(in srgb,var(--pink) 72%,#a72f42);
+  --priority-high-soft: color-mix(in srgb,var(--pink-soft) 82%,var(--surface));
+  --priority-medium: var(--primary);
+  --priority-medium-soft: var(--primary-soft);
+  --priority-low: var(--blue);
+  --priority-low-soft: var(--blue-soft);
+  --shadow: 0 18px 45px rgba(76, 60, 101, .08);
+  --shadow-hover: 0 22px 60px rgba(76, 60, 101, .14);
+  --radius: 22px;
+  --font-scale: 1;
+  --text-caption: calc(.75rem * var(--font-scale));
+  --text-small: calc(.875rem * var(--font-scale));
+  --text-body: calc(1rem * var(--font-scale));
+  --text-medium: calc(1.125rem * var(--font-scale));
+  --text-large: calc(1.375rem * var(--font-scale));
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #14131b;
+  --surface: #1d1b27;
+  --surface-soft: #24212f;
+  --text: #f4f1f7;
+  --muted: #aaa5b5;
+  --faint: #777182;
+  --line: #373242;
+  --primary: #b7a4da;
+  --primary-dark: #d1c2e9;
+  --primary-soft: #332b43;
+  --blue: #8eb8d7;
+  --blue-soft: #243645;
+  --pink: #d7a0b6;
+  --pink-soft: #3f2b35;
+  --shadow: 0 18px 45px rgba(0, 0, 0, .2);
+  --shadow-hover: 0 22px 60px rgba(0, 0, 0, .32);
+}
+
+[data-palette="sunny"] {
+  --bg: #fffaf0;
+  --surface: #fff;
+  --surface-soft: #fff9e5;
+  --text: #27333c;
+  --muted: #69767d;
+  --faint: #98a3a7;
+  --line: #e7e4d7;
+  --primary: #c8a431;
+  --primary-dark: #8b711c;
+  --primary-soft: #fff2b9;
+  --blue: #659bc1;
+  --blue-soft: #e5f3fb;
+  --pink: #c8a431;
+  --pink-soft: #fff2bf;
+}
+
+[data-theme="dark"][data-palette="sunny"] {
+  --bg: #13171b;
+  --surface: #1b2126;
+  --surface-soft: #242b30;
+  --text: #f5f3e9;
+  --muted: #abb2b3;
+  --faint: #747d80;
+  --line: #343d42;
+  --primary: #dfc35d;
+  --primary-dark: #f0d979;
+  --primary-soft: #3b351f;
+  --blue: #86b5d4;
+  --blue-soft: #243744;
+  --pink: #d9be60;
+  --pink-soft: #3b351f;
+}

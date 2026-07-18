@@ -1,0 +1,10 @@
+{
+  "version": "2.1.0",
+  "createdAt": "2026-07-17T03:47:49.183Z",
+  "persistentPathsExcluded": [
+    "data/",
+    ".env",
+    "node_modules/",
+    "release/"
+  ]
+}

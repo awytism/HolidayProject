@@ -1,0 +1,27 @@
+[Unit]
+Description=Gramado Tripboard
+After=network.target
+
+[Service]
+Type=simple
+User=@APP_USER@
+Group=@APP_GROUP@
+WorkingDirectory=@APP_DIR@
+EnvironmentFile=-@APP_DIR@/.env
+EnvironmentFile=-@APP_DIR@/data/runtime.env
+ExecStart=@NODE_BIN@ src/server/app.mjs
+Restart=on-failure
+RestartSec=3s
+KillSignal=SIGTERM
+TimeoutStopSec=30s
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=@APP_DIR@/data
+UMask=0027
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=gramado-tripboard
+
+[Install]
+WantedBy=multi-user.target

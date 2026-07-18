@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 96" role="img" aria-labelledby="la-holidays-logo-title la-holidays-logo-desc">
+  <title id="la-holidays-logo-title">L&amp;A Holidays</title>
+  <desc id="la-holidays-logo-desc">An ascending airplane inside a broad rounded heart beside the Roboto L&amp;A Holidays wordmark.</desc>
+  <style>
+    .wordmark { fill: #29263a; }
+    .heart { fill: #eee8f8; stroke: #8c78bd; }
+    .heart-plane { fill: none; stroke: #65518f; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .brand-initials { font: 700 41px Roboto,sans-serif; letter-spacing: -1.5px; }
+    .holidays { font: 600 31px Roboto,sans-serif; letter-spacing: -.2px; }
+    @media (prefers-color-scheme: dark) { .wordmark { fill: #f4f1f7; } .heart { fill: #332b43; stroke: #b7a4da; } .heart-plane { stroke: #d1c2e9; } }
+  </style>
+  <path class="heart" d="M48 21C43 12.5 36.5 9 29.5 9 16 9 5 20 5 33c0 16 6.5 25 17.8 34C30 73.5 39.5 80.5 48 87c8.5-6.5 18-13.5 25.2-20C84.5 58 91 49 91 33 91 20 80 9 66.5 9 59.5 9 53 12.5 48 21Z" stroke-width="2.2"/>
+  <g class="heart-plane" aria-hidden="true" transform="rotate(-35 48 48) translate(21 21) scale(2.25)"><path d="M17.8 19 9 15l-6 3v-2l6-4-6-4V6l6 3 8.8-4A2 2 0 0 1 21 6.8v10.4a2 2 0 0 1-3.2 1.8Z"/></g>
+  <text class="wordmark" x="110" y="60" aria-hidden="true"><tspan class="brand-initials">L&amp;A</tspan><tspan class="holidays" dx="10">Holidays</tspan></text>
+</svg>

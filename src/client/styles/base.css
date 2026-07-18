@@ -1,0 +1,23 @@
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { scroll-behavior: smooth; }
+body { margin: 0; min-width: 320px; background: var(--bg); color: var(--text); font-family: "Roboto", sans-serif; font-size: var(--text-body); line-height: 1.55; transition: background 180ms ease, color 180ms ease; }
+button, input, textarea, select { color: inherit; font: inherit; }
+button, a { -webkit-tap-highlight-color: transparent; }
+button { cursor: pointer; }
+svg { fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; }
+.section-shell { width: min(1160px, calc(100% - 48px)); margin-inline: auto; }
+.ambient { position: fixed; z-index: -1; width: 440px; height: 440px; border-radius: 50%; opacity: .4; pointer-events: none; }
+.ambient-one { top: 100px; right: -220px; background: radial-gradient(circle, var(--primary-soft), transparent 68%); }
+.ambient-two { top: 56%; left: -260px; background: radial-gradient(circle, var(--blue-soft), transparent 68%); }
+.eyebrow { margin-bottom: 14px; color: var(--primary); font-size: var(--text-caption); font-weight: 700; letter-spacing: .15em; text-transform: uppercase; }
+.toast { position: fixed; z-index: 80; right: 24px; bottom: 24px; padding: 12px 17px; border-radius: 12px; background: var(--text); color: var(--surface); box-shadow: var(--shadow-hover); font-size: 12px; font-weight: 600; opacity: 0; pointer-events: none; transform: translateY(12px); transition: 180ms ease; }
+.toast.is-visible { opacity: 1; transform: translateY(0); }
+.empty-state { padding: 56px 24px; border: 1px dashed var(--line); border-radius: var(--radius); color: var(--muted); text-align: center; }
+.empty-state strong, .empty-state span { display: block; }
+.empty-state strong { margin-bottom: 7px; color: var(--text); }
+.loading-state { min-height: 260px; display: grid; place-items: center; color: var(--muted); }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+body.is-editing [data-meta-field] { border-radius: 5px; outline: 1px dashed var(--primary); outline-offset: 4px; }
+body.is-editing [data-meta-field]:focus { background: var(--primary-soft); outline-style: solid; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; } }

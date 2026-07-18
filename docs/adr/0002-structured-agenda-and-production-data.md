@@ -1,0 +1,3 @@
+# Keep Agenda upgrades structural and deployments data-safe
+
+Agenda Places use separate Maps and Website Links plus a visual-only Priority, while Breakfast, Lunch, and Dinner contain ordered Food Options with the same links, Priority, and public Cover Image capability. Schema v5 migrates legacy links and meal strings deterministically without rewriting user text or order, including custom templates. Production releases contain code only: `data/`, `.env`, uploaded media, attachments, and runtime configuration remain VPS-owned, and rollback always restores matching code and pre-migration data together.

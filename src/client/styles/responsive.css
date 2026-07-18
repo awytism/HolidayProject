@@ -1,0 +1,87 @@
+@media (max-width: 820px) {
+  .hero { grid-template-columns: 1fr; gap: 26px; padding-block: 34px; }
+  .block-grid > .editor-block { grid-column: 1 / -1; }
+  .stay-summary { grid-template-columns: 1fr; }.stay-art { min-height: 240px; }
+  .saved-grid { grid-template-columns: 1fr 1fr; }
+}
+
+@container (max-width: 620px) {
+  .stay-summary,.anatomy-card { grid-template-columns: 1fr; }
+  .stay-art { min-height: 240px; }
+  .amenity-groups,.icon-grid,.facts-grid { grid-template-columns: 1fr; }
+  .edit-form.two-column { grid-template-columns: 1fr; }
+  .edit-form .full-field { grid-column: auto; }
+}
+
+@container (max-width: 520px) {
+  .place-row.has-routes { grid-template-columns: 56px minmax(0,1fr) auto; }
+  .place-row.has-routes .place-route-modes { grid-column: 2 / -1; justify-content: flex-start; }
+  .place-row.has-routes > .entry-links { grid-column: 3; grid-row: 1; }
+}
+
+@container (max-width: 430px) {
+  .transport-card { padding: 20px 17px; }
+  .route-grid { gap: 10px 18px; padding: 20px 0; }
+  .provider-icon { width: 46px; height: 46px; flex-basis: 46px; }
+  .route-location-media { width: 42px; height: 42px; }
+  .route-location-name { font-size: calc(.75rem * var(--font-scale)); }
+  .route-timeline { grid-template-columns: minmax(84px,1fr) minmax(58px,.7fr) minmax(84px,1fr); gap: 4px; }
+  .route-endpoint { grid-template-columns: 42px minmax(0,1fr); gap: 6px; }
+  .route-destination-endpoint { grid-template-columns: minmax(0,1fr) 42px; }
+  .route-endpoint-copy strong { font-size: calc(1.25rem * var(--font-scale)); }
+  .route-endpoint-copy small { font-size: calc(.625rem * var(--font-scale)); }
+  .route-line .route-mode i { width: 31px; height: 31px; }
+  .route-duration { font-size: calc(.5625rem * var(--font-scale)); }
+  .detail-strip { align-items: flex-start; flex-direction: column; gap: 6px; }
+  .meal-grid,.saved-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 600px) {
+  .workspace-bar { grid-template-areas: "brand actions" "nav nav"; grid-template-columns: auto minmax(0,1fr); gap: 4px 8px; padding: 8px 14px; }
+  .brand { grid-area: brand; }
+  .brand-wordmark strong { font-size: 16px; }.brand-wordmark > span { font-size: 13px; }
+  .workspace-actions { grid-area: actions; gap: 4px; margin-left: 0; }
+  .main-nav { grid-area: nav; width: 100%; justify-self: stretch; justify-content: flex-start; margin-left: 0; padding-left: 0; overflow-x: auto; border-left: 0; }
+  .nav-item { flex: 1; padding: 8px 9px; white-space: nowrap; }
+  .icon-button { width: 36px; min-height: 36px; }
+  .text-button { min-height: 36px; padding-inline: 9px; }
+  .font-button { min-width: 30px; height: 36px; padding-inline: 5px; }
+  .section-shell { width: min(calc(100% - 28px),1160px); }
+  .hero { gap: 24px; margin-top: 16px; padding: 30px 20px; }
+  .hero + .content-section { padding-top: 30px; }
+  .hero h1 { font-size: clamp(50px,18vw,72px); }
+  .hero-stats { width: 100%; max-width: none; grid-template-columns: 1fr; gap: 7px; justify-self: stretch; }.stat { min-height: 58px; grid-template-columns: minmax(0,1fr) 34px; gap: 10px; padding: 10px 11px 10px 13px; }.stat-icon { width: 34px; height: 34px; }.stat-icon svg { width: 17px; }.stat strong,.stat #travelDates { font-size: calc(.75rem * var(--font-scale)); font-weight: 400; }
+  .content-section { padding-top: 28px; padding-bottom: 32px; scroll-margin-top: 116px; }
+  .section-heading { display: flex; margin-bottom: 20px; }
+  .transport-card { padding: 20px 17px; }
+  .route-grid { gap: 10px 18px; padding: 20px 0; }
+  .provider-icon { width: 46px; height: 46px; flex-basis: 46px; }
+  .route-location-media { width: 42px; height: 42px; }
+  .route-location-name { font-size: calc(.75rem * var(--font-scale)); }
+  .route-timeline { grid-template-columns: minmax(84px,1fr) minmax(58px,.7fr) minmax(84px,1fr); gap: 4px; }
+  .route-endpoint { grid-template-columns: 42px minmax(0,1fr); gap: 6px; }
+  .route-destination-endpoint { grid-template-columns: minmax(0,1fr) 42px; }
+  .route-endpoint-copy strong { font-size: calc(1.25rem * var(--font-scale)); }
+  .route-endpoint-copy small { font-size: calc(.625rem * var(--font-scale)); }
+  .route-line .route-mode i { width: 31px; height: 31px; }
+  .route-duration { font-size: calc(.5625rem * var(--font-scale)); }
+  .detail-strip { align-items: flex-start; flex-direction: column; gap: 6px; }
+  .stay-copy { padding: 28px 21px; }.stay-dates { gap: 10px; }.stay-dates strong { font-size: 11px; }.list-card { padding: 21px 17px; }
+  .day-body,.day-header { padding-inline: 15px; }.meal-grid { grid-template-columns: 1fr; }.saved-grid { grid-template-columns: 1fr; }
+  .edit-form.two-column { grid-template-columns: 1fr; }.edit-form .full-field { grid-column: auto; }.list-edit-row.two-fields { grid-template-columns: 1fr auto; }.list-edit-row.two-fields input:nth-child(2) { grid-column: 1; }.place-editor-fields,.food-editor-fields { grid-template-columns: 1fr; }.place-editor-fields > :first-child,.food-editor-fields > :first-child,.place-editor textarea { grid-column: auto; }
+  .place-route-editor { grid-template-columns: 1fr; }
+  .transport-cover-editor { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 400px) {
+  .workspace-bar { padding-inline: 8px; }
+  .brand-wordmark { gap: 3px; }.brand-wordmark strong { font-size: 14px; }.brand-wordmark > span { font-size: 11px; }
+  .font-button { min-width: 26px; padding-inline: 3px; }
+  .icon-button { width: 32px; min-height: 32px; }
+  .text-button { min-height: 32px; padding-inline: 6px; font-size: 9px; letter-spacing: 0; }
+  .edit-button { gap: 3px; }
+}
+
+@media (max-width: 460px) {
+  .hero-date-editor { grid-template-columns: 1fr; }
+}
