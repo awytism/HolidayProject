@@ -2,7 +2,6 @@ import { loadConfig, SESSION_TTL_MS } from "./config.mjs";
 import {
   csrfTokenForSession,
   hashSessionToken,
-  hmacIp,
   newOpaqueToken,
   secureStringEqual,
   verifyScryptPassword,
@@ -94,23 +93,20 @@ export class GramadoService {
     return this.issueSession(false);
   }
 
+  enableEditing(input) {
+    this.requireSession(input.sessionToken, false);
+    this.assertCsrf(input.sessionToken, input.csrfToken);
+    return this.rotateSession(input.sessionToken, true, this.config.clock());
+  }
+
   async login(input) {
     this.requireSession(input.sessionToken, false);
     this.assertCsrf(input.sessionToken, input.csrfToken);
-    const startedAt = this.config.clock();
-    const ipHash = hmacIp(input.ip, this.config.ipHmacSecret);
-    const lockedUntil = this.store.getActiveLockout(ipHash, startedAt);
-    if (lockedUntil) throw lockedError(lockedUntil, startedAt);
-
     const validInput = isAcceptablePassword(input.password);
     const candidate = validInput ? input.password : INVALID_PASSWORD;
     const matches = await verifyScryptPassword(candidate, this.config.passwordHash);
     const completedAt = this.config.clock();
-    const concurrentLockout = this.store.getActiveLockout(ipHash, completedAt);
-    if (concurrentLockout) throw lockedError(concurrentLockout, completedAt);
-    if (!validInput || !matches) this.recordFailedLogin(ipHash, completedAt);
-
-    this.store.clearLoginFailures(ipHash);
+    if (!validInput || !matches) throw new ApiError(401, "invalid_credentials", "Invalid credentials");
     return this.rotateSession(input.sessionToken, true, completedAt);
   }
 
@@ -268,7 +264,23 @@ export class GramadoService {
 
   async readAttachment(input) {
     this.requireSession(input.sessionToken, true);
-    const attachment = this.requireAttachment(input.id);
+    return this.loadAttachment(input.id);
+  }
+
+  async downloadAttachment(input) {
+    this.requireSession(input.sessionToken, false);
+    this.assertCsrf(input.sessionToken, input.csrfToken);
+    const validInput = isAcceptablePassword(input.password);
+    const candidate = validInput ? input.password : INVALID_PASSWORD;
+    const matches = await verifyScryptPassword(candidate, this.config.attachmentDownloadPasswordHash);
+    if (!validInput || !matches) {
+      throw new ApiError(403, "invalid_attachment_password", "The attachment password is incorrect");
+    }
+    return this.loadAttachment(input.id);
+  }
+
+  async loadAttachment(id) {
+    const attachment = this.requireAttachment(id);
     try {
       return { attachment: presentAttachment(attachment), bytes: await this.attachmentStorage.read(attachment.id) };
     } catch (error) {
@@ -426,12 +438,6 @@ export class GramadoService {
     return hashSessionToken(token, this.config.ipHmacSecret);
   }
 
-  recordFailedLogin(ipHash, now) {
-    const result = this.store.recordFailedLogin(ipHash, now);
-    if (result.locked) throw lockedError(result.lockedUntil, now);
-    throw new ApiError(401, "invalid_credentials", "Invalid credentials");
-  }
-
   close() {
     this.store.close();
   }
@@ -471,13 +477,6 @@ function presentDocument(state) {
     revision: state.revision,
     updatedAt: new Date(state.updatedAt).toISOString(),
   };
-}
-
-function lockedError(lockedUntil, now) {
-  return new ApiError(429, "login_locked", "Too many failed login attempts", {
-    retryAfterSeconds: Math.max(1, Math.ceil((lockedUntil - now) / 1000)),
-    lockedUntil: new Date(lockedUntil).toISOString(),
-  });
 }
 
 function normalizeContentType(value) {

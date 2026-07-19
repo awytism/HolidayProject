@@ -1,0 +1,121 @@
+/* Shared dropdown language for native selectors and disclosure controls. */
+select:not([multiple]) {
+  --dropdown-chevron-colour: color-mix(in srgb,var(--text) 72%,transparent);
+  appearance: none;
+  -webkit-appearance: none;
+  padding-inline: 12px 40px;
+  background-image:
+    linear-gradient(45deg,transparent 48%,var(--dropdown-chevron-colour) 50%),
+    linear-gradient(135deg,var(--dropdown-chevron-colour) 50%,transparent 52%);
+  background-position:
+    calc(100% - 17px) calc(50% - 1px),
+    calc(100% - 12px) calc(50% - 1px);
+  background-repeat: no-repeat;
+  background-size: 6px 6px;
+  cursor: pointer;
+  transition:
+    border-color var(--motion-fast) var(--ease-standard),
+    background-color var(--motion-fast) var(--ease-standard),
+    box-shadow var(--motion-base) var(--ease-standard),
+    color var(--motion-fast) var(--ease-standard);
+}
+
+select:not([multiple]):hover {
+  border-color: color-mix(in srgb,var(--icon-teal-colour) 46%,var(--line));
+  background-color: color-mix(in srgb,var(--surface-soft) 84%,var(--icon-teal-background));
+}
+
+select:not([multiple]):focus-visible {
+  border-color: var(--icon-teal-colour);
+  outline: 0;
+  box-shadow: 0 0 0 4px color-mix(in srgb,var(--icon-teal-background) 62%,transparent);
+}
+
+select:not([multiple]):disabled {
+  cursor: not-allowed;
+  opacity: .56;
+}
+
+select option {
+  background: var(--surface);
+  color: var(--text);
+}
+
+.block-size select:not([multiple]) {
+  padding-inline: 8px 25px;
+  background-position:
+    calc(100% - 11px) calc(50% - 1px),
+    calc(100% - 7px) calc(50% - 1px);
+  background-size: 5px 5px;
+}
+
+:is(.priority-picker,.custom-amenity) > summary {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  padding-right: 40px;
+  list-style: none;
+  transition:
+    border-color var(--motion-fast) var(--ease-standard),
+    background-color var(--motion-fast) var(--ease-standard),
+    box-shadow var(--motion-base) var(--ease-standard),
+    color var(--motion-fast) var(--ease-standard);
+}
+
+:is(.priority-picker,.custom-amenity) > summary::-webkit-details-marker { display: none; }
+
+:is(.priority-picker,.custom-amenity) > summary::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 16px;
+  width: 7px;
+  height: 7px;
+  border-right: var(--icon-outline-width) solid currentColor;
+  border-bottom: var(--icon-outline-width) solid currentColor;
+  opacity: .72;
+  transform: translateY(-72%) rotate(45deg);
+  transform-origin: center;
+  transition: transform var(--motion-base) var(--ease-emphasized),opacity var(--motion-fast) var(--ease-standard);
+}
+
+:is(.priority-picker,.custom-amenity) > summary:is(:hover,:focus-visible) {
+  border-color: var(--icon-teal-colour) !important;
+  background-color: color-mix(in srgb,var(--surface-soft) 82%,var(--icon-teal-background)) !important;
+  box-shadow: 0 0 0 4px color-mix(in srgb,var(--icon-teal-background) 48%,transparent);
+  outline: 0;
+}
+
+:is(.priority-picker,.custom-amenity)[open] > summary::after {
+  opacity: 1;
+  transform: translateY(-28%) rotate(225deg);
+}
+
+:is(.priority-picker,.custom-amenity)[open] > :not(summary) {
+  animation: dropdown-panel-in var(--motion-base) var(--ease-emphasized) both;
+  transform-origin: top center;
+}
+
+.custom-amenity > summary {
+  min-height: 42px;
+  margin-top: 10px;
+  padding: 8px 40px 8px 12px;
+  border: var(--icon-outline-width) solid var(--line);
+  border-radius: 12px;
+  background: color-mix(in srgb,var(--surface) 78%,var(--icon-olive-background));
+  color: var(--text);
+}
+
+@keyframes dropdown-panel-in {
+  from { opacity: 0; transform: translateY(-7px) scaleY(.97); }
+  to { opacity: 1; transform: translateY(0) scaleY(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  select:not([multiple]),
+  :is(.priority-picker,.custom-amenity) > summary,
+  :is(.priority-picker,.custom-amenity) > summary::after { transition: none; }
+
+  :is(.priority-picker,.custom-amenity)[open] > :not(summary) { animation: none; }
+}

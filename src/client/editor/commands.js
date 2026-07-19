@@ -1,6 +1,7 @@
 import { clone } from "../utils/html.js";
 import { normalizeAmenitySearch } from "../domain/amenity-catalog.js";
 import { hasTrustedIcon } from "../ui/icon-registry.js";
+import { updateLinkedAgendaEntry } from "./agenda-entry-sync.js";
 
 export function addBlock(document, section, block) {
   getBlocks(document, section).push(block);
@@ -41,11 +42,14 @@ export function toggleBlockColorHeader(document, section, blockId) {
 }
 
 export function setPlaceCover(document, context, cover) {
-  findPlace(document, context).cover = cover;
+  const block = findBlock(document, context.section, context.blockId);
+  const place = findPlace(document, context);
+  if (block.type === "saved-places") updateLinkedAgendaEntry(document, place, "saved", "cover", cover);
+  else place.cover = cover;
 }
 
 export function setFoodCover(document, context, cover) {
-  findFoodOption(document, context).cover = cover;
+  updateLinkedAgendaEntry(document, findFoodOption(document, context), "meal", "cover", cover);
 }
 
 export function updateTable(document, context, value) {
@@ -171,7 +175,10 @@ export function deleteListItem(document, context) {
 }
 
 export function updatePlace(document, context, value) {
-  findPlace(document, context)[context.property] = value;
+  const block = findBlock(document, context.section, context.blockId);
+  const place = findPlace(document, context);
+  if (block.type === "saved-places") updateLinkedAgendaEntry(document, place, "saved", context.property, value);
+  else place[context.property] = value;
 }
 
 export function addPlace(document, section, blockId) {
@@ -192,7 +199,7 @@ export function movePlace(document, context, offset) {
 }
 
 export function updateFoodOption(document, context, value) {
-  findFoodOption(document, context)[context.property] = value;
+  updateLinkedAgendaEntry(document, findFoodOption(document, context), "meal", context.property, value);
 }
 
 export function addFoodOption(document, context) {
@@ -236,6 +243,14 @@ function newFoodOption() {
     name: "Nova Opção de Refeição",
     mapUrl: "",
     websiteUrl: "",
+    drivingDistance: "",
+    cyclingDistance: "",
+    walkingDistance: "",
+    drivingTime: "",
+    cyclingTime: "",
+    walkingTime: "",
+    comment: "",
+    priority: "medium",
     cover: null,
   };
 }

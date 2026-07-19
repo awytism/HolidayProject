@@ -191,7 +191,7 @@ function readPort(value) {
 }
 
 function readHost(value) {
-  const host = value ?? "127.0.0.1";
+  const host = value ?? "0.0.0.0";
   if (typeof host !== "string" || (!isIP(host) && !HOSTNAME_PATTERN.test(host))) {
     throw new TypeError("GRAMADO_HOST must be a valid IP address or hostname");
   }

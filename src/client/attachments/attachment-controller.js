@@ -1,10 +1,11 @@
 import { ApiError } from "../services/api.js";
 import { renderActionIcon } from "../ui/icon-registry.js";
 import { escapeHtml } from "../utils/html.js";
+import { renderAttachmentEditorContent } from "./attachment-editor-view.js";
 
 const MAX_ATTACHMENT_BYTES = 50 * 1024 * 1024;
 
-export function createAttachmentController(api, auth, showToast) {
+export function createAttachmentController(api, auth, showToast, translate = (value) => value) {
   const sections = new Map();
   const loaded = new Set();
   const expandedPanels = new Set();
@@ -17,6 +18,9 @@ export function createAttachmentController(api, auth, showToast) {
   let zoom = 1;
   let returnFocus = null;
   let openingViewer = false;
+  let openingPassword = false;
+  let pendingDownloadAttachment = null;
+  let activeAttachmentEditor = null;
 
   bindDialogs();
 
@@ -29,6 +33,7 @@ export function createAttachmentController(api, auth, showToast) {
     render(blockId, section, editing) {
       return renderAttachments(blockId, section, editing);
     },
+    renderDownloadButton,
     async unlock(_session, section) {
       unlocked = true;
       await loadSection(section, true);
@@ -52,12 +57,24 @@ export function createAttachmentController(api, auth, showToast) {
     },
     confirmBlockDeletion(section, blockId) {
       const count = attachmentsFor(section, blockId).length;
-      const suffix = count === 0 ? "" : ` e excluir permanentemente ${count} anexo${count === 1 ? "" : "s"}`;
-      return window.confirm(`Excluir este bloco de conteúdo${suffix}?`);
+      const suffix = count === 0 ? "" : ` ${translate("and permanently delete")} ${count} ${translate(count === 1 ? "attachment" : "attachments")}`;
+      return window.confirm(`${translate("Delete block")}${suffix}?`);
     },
   };
 
+  function renderDownloadButton(blockId, section, label = "Download attachment") {
+    const availabilityClass = attachmentsFor(section, blockId).length ? "" : " is-unavailable";
+    return `<button class="transport-attachment-button${availabilityClass}" type="button" data-transport-attachment data-section="${escapeHtml(section)}" data-block-id="${escapeHtml(blockId)}" aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}" aria-haspopup="dialog">${renderActionIcon("file")}</button>`;
+  }
+
   async function handleClick(event) {
+    const editorClose = event.target.closest("[data-attachment-editor-close]");
+    if (editorClose) {
+      dialogs.editor.close();
+      return;
+    }
+    const transportAttachment = event.target.closest("[data-transport-attachment]");
+    if (transportAttachment) return handleTransportAttachmentClick(transportAttachment);
     const unlock = event.target.closest("[data-attachment-unlock]");
     if (unlock) return unlockAttachments(unlock.dataset.section, unlock.dataset.blockId, unlock);
     const toggle = event.target.closest("[data-attachment-toggle]");
@@ -72,13 +89,58 @@ export function createAttachmentController(api, auth, showToast) {
     if (action.dataset.attachmentAction === "delete") await deleteAttachment(attachment);
   }
 
+  function handleTransportAttachmentClick(trigger) {
+    const { section, blockId } = trigger.dataset;
+    return document.body.classList.contains("is-inline-editing")
+      ? openAttachmentEditor(section, blockId, trigger)
+      : openTransportAttachments(section, blockId, trigger);
+  }
+
+  async function openTransportAttachments(section, blockId, trigger) {
+    try {
+      if (!unlocked || !loaded.has(section)) {
+        const session = await auth.ensureAuthenticated();
+        if (!session) return;
+        unlocked = true;
+        await loadSection(section, true);
+        rerender();
+      }
+      const available = attachmentsFor(section, blockId);
+      if (available.length === 0) {
+        const emptyMessage = {
+          agenda: "No attachment is available for this agenda item yet.",
+          stay: "No attachment is available for this accommodation yet.",
+          transport: "No attachment is available for this transport yet.",
+        }[section] ?? "No attachment is available yet.";
+        showToast(translate(emptyMessage));
+        return;
+      }
+      returnFocus = [...document.querySelectorAll("[data-transport-attachment]")]
+        .find((button) => button.dataset.section === section && button.dataset.blockId === blockId) ?? trigger;
+      if (available.length === 1) return openPasswordDialog(available[0]);
+      openTransportAttachmentPicker(available);
+    } catch (error) {
+      handleAttachmentError(error);
+    }
+  }
+
+  function openTransportAttachmentPicker(available) {
+    dialogs.transportList.innerHTML = available.map((attachment) => `
+      <button type="button" data-transport-attachment-download="${escapeHtml(attachment.id)}">
+        ${renderActionIcon("file")}
+        <span><strong>${escapeHtml(attachment.name)}</strong><small>${formatBytes(attachment.byteSize)} · ${escapeHtml(displayType(attachment))}</small></span>
+      </button>`).join("");
+    dialogs.transportPicker.showModal();
+    dialogs.transportList.querySelector("button")?.focus();
+  }
+
   async function handleFileChange(event) {
     const input = event.target.closest("[data-attachment-upload],[data-attachment-replace]");
     const file = input?.files?.[0];
     if (!input || !file) return;
     if (file.size > MAX_ATTACHMENT_BYTES) {
       input.value = "";
-      showToast("Os anexos devem ter no máximo 50 MB");
+      showToast(translate("Attachments must be no larger than 50 MB"));
       return;
     }
     input.disabled = true;
@@ -87,21 +149,47 @@ export function createAttachmentController(api, auth, showToast) {
       if (!session) return;
       if (input.dataset.attachmentUpload !== undefined) {
         await api.uploadAttachment(input.dataset.section, input.dataset.blockId, file, session.csrfToken);
-        showToast(`${file.name} anexado`);
+        showToast(`${file.name} ${translate("attached")}`);
         await loadSection(input.dataset.section, true);
       } else {
         const attachment = findAttachment(input.dataset.attachmentReplace);
         await api.replaceAttachment(attachment.id, file, session.csrfToken);
-        showToast(`${attachment.name} substituído`);
+        showToast(`${attachment.name} ${translate("replaced")}`);
         await loadSection(attachment.section, true);
       }
       rerender();
+      refreshAttachmentEditor();
     } catch (error) {
       handleAttachmentError(error);
     } finally {
       input.value = "";
       input.disabled = false;
     }
+  }
+
+  async function openAttachmentEditor(section, blockId, trigger) {
+    try {
+      const session = await requireSession();
+      if (!session) return;
+      unlocked = true;
+      await loadSection(section, true);
+      activeAttachmentEditor = { section, blockId };
+      returnFocus = trigger;
+      refreshAttachmentEditor();
+      dialogs.editor.showModal();
+      dialogs.editor.querySelector(".attachment-upload")?.focus();
+    } catch (error) {
+      handleAttachmentError(error);
+    }
+  }
+
+  function refreshAttachmentEditor() {
+    if (!activeAttachmentEditor) return;
+    const { section, blockId } = activeAttachmentEditor;
+    const attachments = attachmentsFor(section, blockId);
+    dialogs.editorContent.innerHTML = renderAttachmentEditorContent({
+      attachments, section, blockId, translate, formatBytes, displayType,
+    });
   }
 
   async function unlockAttachments(section, blockId, trigger) {
@@ -160,12 +248,12 @@ export function createAttachmentController(api, auth, showToast) {
 
   function renderAttachments(blockId, section, editing) {
     if (!unlocked || !loaded.has(section)) {
-      return `<section class="attachment-section is-locked is-collapsed"><button class="attachment-summary" type="button" data-attachment-unlock data-section="${escapeHtml(section)}" data-block-id="${escapeHtml(blockId)}" aria-expanded="false">${renderActionIcon("file")}<span class="attachment-summary-copy"><strong>Anexos</strong><small>Desbloqueie para visualizar</small></span><span class="attachment-summary-chevron" aria-hidden="true">${renderActionIcon("arrow-down")}</span></button></section>`;
+      return `<section class="attachment-section is-locked is-collapsed"><button class="attachment-summary" type="button" data-attachment-unlock data-section="${escapeHtml(section)}" data-block-id="${escapeHtml(blockId)}" aria-expanded="false">${renderActionIcon("file")}<span class="attachment-summary-copy"><strong>${translate("Attachments")}</strong><small>${translate("Unlock to view")}</small></span><span class="attachment-summary-chevron" aria-hidden="true">${renderActionIcon("arrow-down")}</span></button></section>`;
     }
     const attachments = attachmentsFor(section, blockId);
     const expanded = expandedPanels.has(panelKey(section, blockId));
-    const count = `${attachments.length} arquivo${attachments.length === 1 ? "" : "s"}`;
-    const summary = `<button class="attachment-summary" type="button" data-attachment-toggle data-section="${escapeHtml(section)}" data-block-id="${escapeHtml(blockId)}" aria-expanded="${expanded}">${renderActionIcon("file")}<span class="attachment-summary-copy"><strong>Anexos</strong><small>${count}</small></span><span class="attachment-summary-chevron" aria-hidden="true">${renderActionIcon("arrow-down")}</span></button>`;
+    const count = `${attachments.length} ${translate(attachments.length === 1 ? "file" : "files")}`;
+    const summary = `<button class="attachment-summary" type="button" data-attachment-toggle data-section="${escapeHtml(section)}" data-block-id="${escapeHtml(blockId)}" aria-expanded="${expanded}">${renderActionIcon("file")}<span class="attachment-summary-copy"><strong>${translate("Attachments")}</strong><small>${count}</small></span><span class="attachment-summary-chevron" aria-hidden="true">${renderActionIcon("arrow-down")}</span></button>`;
     if (!expanded) return `<section class="attachment-section is-collapsed">${summary}</section>`;
     return `<section class="attachment-section is-expanded">${summary}${renderAttachmentPanel(blockId, section, editing)}</section>`;
   }
@@ -174,14 +262,15 @@ export function createAttachmentController(api, auth, showToast) {
     const attachments = attachmentsFor(section, blockId);
     const rows = attachments.length
       ? attachments.map((attachment) => renderAttachmentRow(attachment, editing)).join("")
-      : '<p class="attachment-empty">Nenhum anexo ainda.</p>';
-    const upload = editing ? `<div class="attachment-upload-group"><label class="attachment-upload">${renderActionIcon("upload")}<span>Adicionar Anexo</span><input type="file" data-attachment-upload data-section="${section}" data-block-id="${escapeHtml(blockId)}"></label><small>Até 50 MB por arquivo</small></div>` : "";
+      : `<p class="attachment-empty">${translate("No attachments yet.")}</p>`;
+    const upload = editing ? `<div class="attachment-upload-group"><label class="attachment-upload">${renderActionIcon("upload")}<span>${translate("Add Attachment")}</span><input type="file" data-attachment-upload data-section="${section}" data-block-id="${escapeHtml(blockId)}"></label><small>${translate("Up to 50 MB per file")}</small></div>` : "";
     const actions = upload ? `<div class="attachment-panel-actions">${upload}</div>` : "";
     return `<div class="attachment-panel">${actions}<div class="attachment-list">${rows}</div></div>`;
   }
 
   function renderAttachmentRow(attachment, editing) {
-    const editControls = editing ? `<span class="attachment-edit-controls">${attachmentIconButton("rename", "Renomear Anexo", "pencil", attachment.id)}<label class="toolbar-icon attachment-replace" data-tooltip="Substituir Anexo" aria-label="Substituir Anexo">${renderActionIcon("replace")}<input type="file" data-attachment-replace="${attachment.id}"></label>${attachmentIconButton("delete", "Excluir Anexo", "trash", attachment.id)}</span>` : "";
+    const replaceLabel = translate("Replace Attachment");
+    const editControls = editing ? `<span class="attachment-edit-controls">${attachmentIconButton("rename", translate("Rename Attachment"), "pencil", attachment.id)}<label class="toolbar-icon attachment-replace" data-tooltip="${replaceLabel}" aria-label="${replaceLabel}">${renderActionIcon("replace")}<input type="file" data-attachment-replace="${attachment.id}"></label>${attachmentIconButton("delete", translate("Delete Attachment"), "trash", attachment.id)}</span>` : "";
     return `<article class="attachment-row"><button class="attachment-open" type="button" data-attachment-open="${attachment.id}">${renderActionIcon("file")}<span><strong>${escapeHtml(attachment.name)}</strong><small>${formatBytes(attachment.byteSize)} · ${escapeHtml(displayType(attachment))}</small></span></button>${editControls}</article>`;
   }
 
@@ -191,7 +280,7 @@ export function createAttachmentController(api, auth, showToast) {
   }
 
   async function renameAttachment(attachment) {
-    const name = window.prompt("Nome do anexo", attachment.name);
+    const name = window.prompt(translate("Attachment name"), attachment.name);
     if (name === null || name.trim() === attachment.name) return;
     try {
       const session = await requireSession();
@@ -199,19 +288,21 @@ export function createAttachmentController(api, auth, showToast) {
       await api.renameAttachment(attachment.id, name, session.csrfToken);
       await loadSection(attachment.section, true);
       rerender();
-      showToast("Anexo renomeado");
+      refreshAttachmentEditor();
+      showToast(translate("Attachment renamed"));
     } catch (error) { handleAttachmentError(error); }
   }
 
   async function deleteAttachment(attachment) {
-    if (!window.confirm(`Excluir permanentemente ${attachment.name}?`)) return;
+    if (!window.confirm(`${translate("Permanently delete")} ${attachment.name}?`)) return;
     try {
       const session = await requireSession();
       if (!session) return;
       await api.deleteAttachment(attachment.id, session.csrfToken);
       await loadSection(attachment.section, true);
       rerender();
-      showToast("Anexo excluído");
+      refreshAttachmentEditor();
+      showToast(translate("Attachment deleted"));
     } catch (error) { handleAttachmentError(error); }
   }
 
@@ -227,7 +318,7 @@ export function createAttachmentController(api, auth, showToast) {
     returnFocus = trigger;
     dialogs.actionName.textContent = actionAttachment.name;
     dialogs.view.disabled = !actionAttachment.previewable;
-    dialogs.view.title = actionAttachment.previewable ? "Visualizar anexo" : "Pré-visualização indisponível para este tipo de arquivo";
+    dialogs.view.title = translate(actionAttachment.previewable ? "Preview attachment" : "Preview unavailable for this file type");
     dialogs.action.showModal();
     dialogs.view.focus();
   }
@@ -303,13 +394,57 @@ export function createAttachmentController(api, auth, showToast) {
 
   function downloadSelected() {
     if (!actionAttachment) return;
-    const link = document.createElement("a");
-    link.href = api.attachmentContentUrl(actionAttachment.id);
-    link.download = actionAttachment.name;
-    document.body.append(link);
-    link.click();
-    link.remove();
-    dialogs.action.close();
+    openPasswordDialog(actionAttachment);
+  }
+
+  function openPasswordDialog(attachment) {
+    pendingDownloadAttachment = attachment;
+    dialogs.passwordName.textContent = attachment.name;
+    dialogs.passwordInput.value = "";
+    dialogs.passwordError.hidden = true;
+    openingPassword = true;
+    if (dialogs.action.open) dialogs.action.close();
+    if (dialogs.transportPicker.open) dialogs.transportPicker.close();
+    dialogs.password.showModal();
+    openingPassword = false;
+    dialogs.passwordInput.focus();
+  }
+
+  async function submitPasswordDownload(event) {
+    event.preventDefault();
+    if (!pendingDownloadAttachment || !dialogs.passwordInput.value) return;
+    dialogs.passwordSubmit.disabled = true;
+    dialogs.passwordInput.disabled = true;
+    dialogs.passwordError.hidden = true;
+    try {
+      const session = await auth.ensureSession();
+      const blob = await api.downloadAttachment(
+        pendingDownloadAttachment.id,
+        dialogs.passwordInput.value,
+        session.csrfToken,
+      );
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = pendingDownloadAttachment.name;
+      document.body.append(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 0);
+      dialogs.password.close();
+      showToast("Attachment downloaded securely.");
+    } catch (error) {
+      if (error instanceof ApiError && error.code === "invalid_attachment_password") {
+        dialogs.passwordError.textContent = "Incorrect password. Please try again.";
+        dialogs.passwordError.hidden = false;
+        window.queueMicrotask(() => dialogs.passwordInput.select());
+        return;
+      }
+      handleAttachmentError(error);
+    } finally {
+      dialogs.passwordSubmit.disabled = false;
+      dialogs.passwordInput.disabled = false;
+    }
   }
 
   function bindDialogs() {
@@ -321,8 +456,30 @@ export function createAttachmentController(api, auth, showToast) {
     dialogs.next.addEventListener("click", () => changeViewerItem(1));
     dialogs.zoomIn.addEventListener("click", () => changeZoom(0.25));
     dialogs.zoomOut.addEventListener("click", () => changeZoom(-0.25));
+    dialogs.transportClose.addEventListener("click", () => dialogs.transportPicker.close());
+    dialogs.editor.addEventListener("click", handleClick);
+    dialogs.editor.addEventListener("change", handleFileChange);
+    dialogs.transportList.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-transport-attachment-download]");
+      if (!button) return;
+      const attachment = findAttachment(button.dataset.transportAttachmentDownload);
+      if (attachment) openPasswordDialog(attachment);
+    });
+    dialogs.passwordForm.addEventListener("submit", submitPasswordDownload);
+    dialogs.passwordCancel.addEventListener("click", () => dialogs.password.close());
     dialogs.action.addEventListener("close", () => {
-      if (!openingViewer) restoreFocus();
+      if (!openingViewer && !openingPassword) restoreFocus();
+    });
+    dialogs.transportPicker.addEventListener("close", () => {
+      if (!openingPassword) restoreFocus();
+    });
+    dialogs.password.addEventListener("close", () => {
+      pendingDownloadAttachment = null;
+      restoreFocus();
+    });
+    dialogs.editor.addEventListener("close", () => {
+      activeAttachmentEditor = null;
+      restoreFocus();
     });
     dialogs.viewer.addEventListener("close", restoreFocus);
   }
@@ -335,6 +492,9 @@ export function createAttachmentController(api, auth, showToast) {
   function closeDialogs() {
     if (dialogs.action.open) dialogs.action.close();
     if (dialogs.viewer.open) dialogs.viewer.close();
+    if (dialogs.transportPicker.open) dialogs.transportPicker.close();
+    if (dialogs.password.open) dialogs.password.close();
+    if (dialogs.editor.open) dialogs.editor.close();
   }
 
   function attachmentsFor(section, blockId) {
@@ -352,10 +512,10 @@ export function createAttachmentController(api, auth, showToast) {
       sections.clear();
       expandedPanels.clear();
       rerender();
-      showToast("Sua sessão de anexos expirou. Desbloqueie novamente.");
+      showToast(translate("Your attachment session expired. Unlock again."));
       return;
     }
-    showToast(error.message ?? "A ação do anexo falhou");
+    showToast(error.message ?? translate("Attachment action failed"));
   }
 
   function restoreDisclosureAfterRender(section, blockId, viewportTop) {
@@ -398,9 +558,38 @@ function createDialogs() {
         </nav>
       </header>
       <div class="attachment-viewer-body"></div>
+    </dialog>
+    <dialog class="transport-attachment-dialog" aria-labelledby="transportAttachmentTitle">
+      <button class="dialog-close" type="button" data-transport-attachment-close aria-label="Close">×</button>
+      <small>Travel documents</small>
+      <h2 id="transportAttachmentTitle">Choose an Attachment</h2>
+      <div class="transport-attachment-list"></div>
+    </dialog>
+    <dialog class="attachment-editor-dialog" aria-labelledby="attachmentEditorTitle">
+      <button class="dialog-close" type="button" data-attachment-editor-close aria-label="Close">×</button>
+      <small>Document</small>
+      <h2 id="attachmentEditorTitle">Add or Manage Documents</h2>
+      <div class="attachment-editor-content"></div>
+    </dialog>
+    <dialog class="attachment-password-dialog" aria-labelledby="attachmentPasswordTitle">
+      <form class="attachment-password-form">
+        <span class="attachment-password-icon" aria-hidden="true">${renderActionIcon("file")}</span>
+        <small>Protected download</small>
+        <h2 id="attachmentPasswordTitle">Enter the Attachment Password</h2>
+        <p class="attachment-password-name"></p>
+        <label>Password<input type="password" autocomplete="current-password" required aria-label="Attachment password"></label>
+        <p class="attachment-password-error" role="alert" hidden></p>
+        <div class="attachment-password-actions">
+          <button type="button" data-attachment-password-cancel>Cancel</button>
+          <button type="submit" data-attachment-password-submit>${renderActionIcon("download")}<span>Download</span></button>
+        </div>
+      </form>
     </dialog>`);
   const action = document.querySelector(".attachment-action-dialog");
   const viewer = document.querySelector(".attachment-viewer");
+  const transportPicker = document.querySelector(".transport-attachment-dialog");
+  const editor = document.querySelector(".attachment-editor-dialog");
+  const password = document.querySelector(".attachment-password-dialog");
   return {
     action,
     actionName: action.querySelector("#attachmentActionName"),
@@ -416,6 +605,18 @@ function createDialogs() {
     zoomIn: viewer.querySelector("[data-viewer-zoom-in]"),
     zoomOut: viewer.querySelector("[data-viewer-zoom-out]"),
     zoomStatus: viewer.querySelector("[data-viewer-zoom-status]"),
+    transportPicker,
+    transportClose: transportPicker.querySelector("[data-transport-attachment-close]"),
+    transportList: transportPicker.querySelector(".transport-attachment-list"),
+    editor,
+    editorContent: editor.querySelector(".attachment-editor-content"),
+    password,
+    passwordForm: password.querySelector(".attachment-password-form"),
+    passwordName: password.querySelector(".attachment-password-name"),
+    passwordInput: password.querySelector("input"),
+    passwordError: password.querySelector(".attachment-password-error"),
+    passwordCancel: password.querySelector("[data-attachment-password-cancel]"),
+    passwordSubmit: password.querySelector("[data-attachment-password-submit]"),
   };
 }
 

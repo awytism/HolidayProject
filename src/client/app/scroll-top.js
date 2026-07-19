@@ -1,20 +1,37 @@
+export function calculateScrollTopThreshold(viewportHeight) {
+  return Math.max(240, Math.min(420, viewportHeight * 0.4));
+}
+
+export function shouldShowScrollTop({ scrollY, scrollHeight, viewportHeight }) {
+  const overflows = scrollHeight > viewportHeight + 80;
+  return overflows && scrollY > calculateScrollTopThreshold(viewportHeight);
+}
+
 export function initializeScrollTop(elements) {
-  let topVisible = true;
+  let frame = 0;
+  elements.button.hidden = false;
   const update = () => {
     const root = document.documentElement;
-    const overflows = root.scrollHeight > window.innerHeight + 80;
-    const visible = !topVisible && overflows;
-    elements.button.hidden = !visible;
+    const visible = shouldShowScrollTop({
+      scrollY: window.scrollY,
+      scrollHeight: root.scrollHeight,
+      viewportHeight: window.innerHeight,
+    });
     elements.button.classList.toggle("is-visible", visible);
+    elements.button.setAttribute("aria-hidden", String(!visible));
+    elements.button.tabIndex = visible ? 0 : -1;
   };
-  const observer = new IntersectionObserver(([entry]) => {
-    topVisible = entry.isIntersecting;
-    update();
-  }, { rootMargin: "-120px 0px 0px" });
-  observer.observe(elements.sentinel);
+  const scheduleUpdate = () => {
+    if (frame) return;
+    frame = window.requestAnimationFrame(() => {
+      frame = 0;
+      update();
+    });
+  };
   const resizeObserver = new ResizeObserver(update);
   resizeObserver.observe(document.body);
-  window.addEventListener("resize", update);
+  window.addEventListener("scroll", scheduleUpdate, { passive: true });
+  window.addEventListener("resize", scheduleUpdate);
   window.addEventListener("fontscalechange", update);
   window.addEventListener("dashboardrender", update);
   elements.button.addEventListener("click", () => {
@@ -22,5 +39,15 @@ export function initializeScrollTop(elements) {
     window.scrollTo({ top: 0, behavior: reduced ? "auto" : "smooth" });
   });
   update();
-  return { refresh: update, disconnect: () => { observer.disconnect(); resizeObserver.disconnect(); } };
+  return {
+    refresh: update,
+    disconnect: () => {
+      if (frame) window.cancelAnimationFrame(frame);
+      resizeObserver.disconnect();
+      window.removeEventListener("scroll", scheduleUpdate);
+      window.removeEventListener("resize", scheduleUpdate);
+      window.removeEventListener("fontscalechange", update);
+      window.removeEventListener("dashboardrender", update);
+    },
+  };
 }

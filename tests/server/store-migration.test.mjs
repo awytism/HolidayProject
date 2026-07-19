@@ -30,14 +30,14 @@ test("backs up and atomically migrates a persisted v2 document", (context) => {
   );
   const store = new GramadoStore({ database, initialDocument: createDefaultDocument(), now: 200 });
   const state = store.getDocument();
-  assert.equal(state.document.schemaVersion, 9);
+  assert.equal(state.document.schemaVersion, 12);
   assert.equal(state.revision, 3);
   const backup = database.prepare("SELECT revision, schema_version, document_json FROM document_backups").get();
   assert.equal(backup.revision, 2);
   assert.equal(backup.schema_version, 2);
   assert.deepEqual(JSON.parse(backup.document_json), v2);
   assert.deepEqual({ ...database.prepare("SELECT version, applied_at FROM schema_migrations").get() }, {
-    version: 9,
+    version: 12,
     applied_at: 200,
   });
   const template = database.prepare("SELECT template_json, revision, updated_at FROM custom_templates").get();

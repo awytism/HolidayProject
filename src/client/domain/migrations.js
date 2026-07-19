@@ -138,6 +138,14 @@ function legacyFoodOptions(value, suffix) {
     name: value,
     mapUrl: "",
     websiteUrl: "",
+    drivingDistance: "",
+    cyclingDistance: "",
+    walkingDistance: "",
+    drivingTime: "",
+    cyclingTime: "",
+    walkingTime: "",
+    comment: "",
+    priority: "medium",
     cover: null,
   }];
 }

@@ -13,7 +13,12 @@ import {
   setPlaceCover,
   updateTable,
 } from "../../src/client/editor/commands.js";
-import { resolveDropPosition, scoreDirectionalTarget } from "../../src/client/editor/block-editor.js";
+import {
+  editorCardTitle,
+  renderBlockEditor,
+  resolveDropPosition,
+  scoreDirectionalTarget,
+} from "../../src/client/editor/block-editor.js";
 import { BUILTIN_TEMPLATES } from "../../src/client/editor/builtin-templates.js";
 import { createGenericBlock } from "../../src/client/sections/generic.js";
 import { instantiateTemplate, renderTemplatePrototype } from "../../src/client/editor/template-pool.js";
@@ -31,6 +36,56 @@ test("edits table shape while preserving cell alignment", () => {
   assert.equal(block.data.rows[1].cells[2], "Value");
   changeTable(document, { ...base, action: "delete-column" });
   assert.equal(block.data.rows.every((row) => row.cells.length === 2), true);
+});
+
+test("names every editing card by its content type with section fallbacks", () => {
+  assert.equal(editorCardTitle("flight", "transport"), "Flight");
+  assert.equal(editorCardTitle("transfer", "transport"), "Ground Transfer");
+  assert.equal(editorCardTitle("stay-summary", "stay"), "Accommodation Summary");
+  assert.equal(editorCardTitle("stay-amenities", "stay"), "Listing Highlights");
+  assert.equal(editorCardTitle("day", "agenda"), "Day Plan");
+  assert.equal(editorCardTitle("saved-places", "agenda"), "Other Places");
+  assert.equal(editorCardTitle("unknown", "agenda"), "Agenda");
+  assert.equal(editorCardTitle("unknown", "unknown"), "Content");
+});
+
+test("renders one descriptive heading above every visible editing card", () => {
+  const document = createDefaultDocument();
+  const root = {
+    innerHTML: "",
+    querySelector: () => null,
+    querySelectorAll: () => [],
+  };
+  let activeSection = "transport";
+  const store = { getState: () => ({ activeSection, editing: true }), getDocument: () => document };
+  const visibleCounts = {
+    transport: document.sections.transport.length,
+    stay: document.sections.stay.filter(({ type }) => !["stay-anatomy", "essentials"].includes(type)).length,
+    agenda: document.sections.agenda.length,
+  };
+
+  for (const section of ["transport", "stay", "agenda"]) {
+    activeSection = section;
+    renderBlockEditor(root, store, null, section);
+    assert.equal((root.innerHTML.match(/class="editor-card-heading"/g) ?? []).length, visibleCounts[section]);
+  }
+
+  activeSection = "transport";
+  renderBlockEditor(root, store, null, activeSection);
+  assert.match(root.innerHTML, /class="editor-card-heading"><h3>Flight<\/h3><button class="editor-card-delete/);
+  assert.match(root.innerHTML, /class="editor-card-heading"><h3>Ground Transfer<\/h3><button class="editor-card-delete/);
+  assert.equal((root.innerHTML.match(/class="editor-card-delete/g) ?? []).length, document.sections.transport.length);
+
+  activeSection = "stay";
+  renderBlockEditor(root, store, null, activeSection);
+  assert.doesNotMatch(root.innerHTML, /class="editor-card-delete/);
+  assert.match(root.innerHTML, /class="editor-card-heading"><h3>Accommodation Summary<\/h3><\/header>/);
+  assert.match(root.innerHTML, /class="editor-card-heading"><h3>Listing Highlights<\/h3><\/header>/);
+
+  activeSection = "agenda";
+  renderBlockEditor(root, store, null, activeSection);
+  assert.match(root.innerHTML, /class="editor-card-heading"><h3>Day Plan<\/h3><\/header>/);
+  assert.match(root.innerHTML, /class="editor-card-heading"><h3>Other Places<\/h3><\/header>/);
 });
 
 test("regenerates nested IDs when duplicating and instantiating templates", () => {
@@ -71,7 +126,7 @@ test("updates covers, generic collections, amenities, and anatomy", () => {
 
   const anatomy = document.sections.stay.find((block) => block.type === "stay-anatomy");
   changeAnatomy(document, { section: "stay", blockId: anatomy.id, action: "add-space" });
-  assert.equal(anatomy.data.spaces.at(-1).label, "New Room");
+  assert.equal(anatomy.data.spaces.at(-1).label, "Novo Quarto");
 });
 
 test("persists supported block widths", () => {

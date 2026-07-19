@@ -42,6 +42,7 @@ export function runFoodAction(button, context) {
     if (action === "up") moveFoodOption(document, data, -1);
     if (action === "down") moveFoodOption(document, data, 1);
     if (action === "delete") deleteFoodOption(document, data);
+    if (action === "priority") updateFoodOption(document, { ...data, property: "priority" }, button.dataset.priority);
   });
 }
 

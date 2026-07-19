@@ -45,6 +45,7 @@ test("normalizes accents, case, surrounding whitespace, and repeated spaces", ()
   assert.equal(normalizeAmenitySearch(null), "");
   assert.equal(searchAmenities("HÍDRO")[0].id, "hot-tub");
   assert.equal(searchAmenities("CHURRÁSQUEIRA")[0].id, "bbq-grill");
+  assert.equal(searchAmenities("toilet")[0].id, "toilet");
 });
 
 test("ranks label exact and prefix matches ahead of substring and aliases", () => {
@@ -74,6 +75,8 @@ test("renders only immutable trusted SVG entries", () => {
   assert.ok(Object.isFrozen(TRUSTED_ICON_KEYS));
   assert.equal(TRUSTED_ICON_KEYS.length, Object.keys(ICON_REGISTRY).length);
   assert.match(renderIcon("hot-tub"), /^<svg [^>]+aria-hidden="true"[^>]*>/);
+  assert.match(renderIcon("priority-star"), /<path d="m12 2\.9 2\.82 5\.72/);
+  assert.match(renderIcon("toilet"), /<path d="M9 3a3 3 0 0 1 6 0/);
   assert.equal(renderIcon("<img src=x onerror=alert(1)>") , "");
   assert.equal(renderIcon({ toString: () => "home" }), "");
   assert.ok(!renderIcon("home").includes("script"));

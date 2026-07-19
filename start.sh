@@ -261,7 +261,8 @@ install_and_start() {
   if ! wait_for_health; then
     fail "Service did not pass /api/document health within ${GRAMADO_HEALTH_TIMEOUT:-30}s. Run './start.sh logs'."
   fi
-  echo "[Tripboard] Service running at http://127.0.0.1:$SELECTED_PORT"
+  echo "[Tripboard] Service listening on all IPv4 interfaces at port $SELECTED_PORT"
+  echo "[Tripboard] Open http://127.0.0.1:$SELECTED_PORT on this machine."
 }
 
 stop_service() {

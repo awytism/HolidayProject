@@ -97,9 +97,9 @@ test("creates upload storage and cleans staged media before listening", async ()
   });
 
   assert.deepEqual(events, ["cleanup", "listen"]);
-  assert.deepEqual(listenArguments, [3001, "127.0.0.1"]);
-  assert.equal(directories.includes("C:/gramado-test/private/uploads"), true);
-  assert.equal(directories.includes("C:/gramado-test/private/attachments"), true);
+  assert.deepEqual(listenArguments, [3001, "0.0.0.0"]);
+  assert.equal(directories.some((path) => path.endsWith("C:/gramado-test/private/uploads")), true);
+  assert.equal(directories.some((path) => path.endsWith("C:/gramado-test/private/attachments")), true);
   await runtime.shutdown();
 });
 

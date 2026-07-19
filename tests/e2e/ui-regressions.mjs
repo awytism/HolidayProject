@@ -60,14 +60,14 @@ export async function verifyCalendarEditors(client) {
     input.dispatchEvent(new Event("input", { bubbles: true }));
     return result;
   });
-  assert.deepEqual(derived, { days: "8", dates: "Oct 25th – Nov 1st 2026" });
+  assert.deepEqual(derived, { days: "8", dates: "Oct 25th to Nov 1st, 2026" });
   assert.equal(await client.run(() => document.querySelector('.editor-block input[data-block-field="date"]').type), "date");
 
   await client.run(() => document.querySelector("[data-view=stay]").click());
-  await client.waitFor(() => document.querySelectorAll('#sectionRoot input[type="date"]').length === 2);
+  await client.waitFor(() => document.querySelectorAll('#stayRoot input[type="date"]').length === 2);
   await client.run(() => document.querySelector("[data-view=agenda]").click());
-  await client.waitFor(() => document.querySelectorAll('#sectionRoot input[type="date"]').length === 9);
-  assert.equal(await client.run(() => document.querySelectorAll('#sectionRoot [data-block-field="month"],#sectionRoot [data-block-field="weekday"]').length), 0);
+  await client.waitFor(() => document.querySelectorAll('#agendaRoot input[type="date"]').length === 9);
+  assert.equal(await client.run(() => document.querySelectorAll('#agendaRoot [data-block-field="month"],#agendaRoot [data-block-field="weekday"]').length), 0);
   await client.run(() => document.querySelector("[data-view=transport]").click());
   await client.waitFor(() => document.querySelector('.editor-block input[data-block-field="date"]'));
 }

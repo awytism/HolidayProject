@@ -1,6 +1,7 @@
 import { isIsoDate, parseIsoDate } from "./date-utils.mjs";
+import { isValidTimeZone } from "./transport-duration.mjs";
 
-export const DOCUMENT_SCHEMA_VERSION = 9;
+export const DOCUMENT_SCHEMA_VERSION = 12;
 
 const LIMITS = Object.freeze({
   blocks: 200,
@@ -11,11 +12,16 @@ const LIMITS = Object.freeze({
   url: 2_048,
   tableColumns: 12,
   tableRows: 50,
+  inlineOverrides: 3_000,
+  inlineKey: 320,
 });
 
 const GENERIC_TYPES = ["table", "image-card", "icon-list", "checklist", "facts", "link-card", "note"];
 const BLOCK_SPANS = new Set([4, 6, 8, 12]);
 const PRIORITIES = new Set(["high", "medium", "low"]);
+const PLACE_CATEGORIES = new Set(["restaurant", "landmark"]);
+const TRANSPORT_DIRECTIONS = new Set(["outbound", "inbound"]);
+const FLIGHT_SERVICE_TYPES = new Set(["direct", "layover"]);
 const SECTION_TYPES = Object.freeze({
   transport: new Set([...GENERIC_TYPES, "flight", "transfer"]),
   stay: new Set([...GENERIC_TYPES, "stay-summary", "stay-amenities", "stay-distances", "stay-anatomy", "essentials", "link"]),
@@ -56,12 +62,28 @@ export function validateDocument(document) {
   if (document.schemaVersion !== DOCUMENT_SCHEMA_VERSION) throw new TypeError("Unsupported document schema");
   assertRecord(document.meta, "meta");
   assertTextFields(document.meta, ["destination", "region", "startDate", "endDate", "days", "legs"], "meta", LIMITS.label);
+  assertOptionalTextFields(document.meta, ["brandName", "transportTitle", "stayTitle", "agendaTitle"], "meta", LIMITS.label);
+  validateInlineOverrides(document.meta.inlineText, "inline text", LIMITS.text);
+  validateInlineOverrides(document.meta.inlineIcons, "inline icons", 100);
+  validateCover(document.meta.heroCover, "meta hero cover");
   assertDate(document.meta.startDate, "meta start date");
   assertDate(document.meta.endDate, "meta end date");
   assertDateOrder(document.meta.startDate, document.meta.endDate, "trip dates");
   assertRecord(document.sections, "sections");
   for (const section of Object.keys(SECTION_TYPES)) validateSection(document.sections[section], section);
   return true;
+}
+
+function validateInlineOverrides(overrides, label, valueLimit) {
+  if (overrides === undefined) return;
+  assertRecord(overrides, label);
+  const entries = Object.entries(overrides);
+  if (entries.length > LIMITS.inlineOverrides) throw new TypeError(`Invalid ${label}`);
+  for (const [key, value] of entries) {
+    assertText(key, `${label} key`, LIMITS.inlineKey);
+    if (!key) throw new TypeError(`Invalid ${label} key`);
+    assertText(value, `${label} value`, valueLimit);
+  }
 }
 
 export function validateCustomBlock(block, section) {
@@ -78,9 +100,20 @@ export function validateMedia(media, label = "media") {
   const hasUrl = Object.hasOwn(media, "url");
   const hasMediaId = Object.hasOwn(media, "mediaId");
   if (hasUrl === hasMediaId) throw new TypeError(`Invalid ${label} source`);
-  if (hasUrl) assertHttpsUrl(media.url, `${label} URL`);
+  if (hasUrl) assertMediaUrl(media.url, `${label} URL`);
   else assertId(media.mediaId, `${label} media ID`);
   return true;
+}
+
+function assertMediaUrl(value, label) {
+  if (isBundledAssetUrl(value)) return;
+  assertHttpsUrl(value, label);
+}
+
+function isBundledAssetUrl(value) {
+  return typeof value === "string"
+    && /^\/assets\/[A-Za-z0-9][A-Za-z0-9._/-]*$/.test(value)
+    && !value.split("/").includes("..");
 }
 
 function validateSection(blocks, section) {
@@ -129,18 +162,17 @@ function validatePlace(place, ids) {
   ], "place");
   assertText(place.image, "place image", LIMITS.url);
   assertPriority(place.priority, "place priority");
+  if (place.category !== undefined && !PLACE_CATEGORIES.has(place.category)) throw new TypeError("Invalid place category");
   validateCover(place.cover, "place cover");
 }
 
 function validateTextBlock(data, type) {
   assertTextFields(data, TEXT_FIELDS[type], `${type} data`);
   if (type === "transfer") assertOptionalTextFields(data, ["originCity", "destinationCity", "stop", "details"], type);
-  if (["flight", "transfer"].includes(type)) assertOptionalTextFields(data, ["mapUrl", "websiteUrl"], type, LIMITS.url);
-  if (["flight", "transfer"].includes(type)) validateTransportCovers(data, type);
+  if (["flight", "transfer"].includes(type)) validateTransportBlockData(data, type);
   if (type === "stay-summary") assertOptionalTextFields(data, ["checkinTime", "checkoutTime"], type, LIMITS.label);
   if (type === "stay-summary") assertOptionalTextFields(data, ["mapUrl", "websiteUrl", "link"], type, LIMITS.url);
   if (["link", "link-card"].includes(type)) assertText(data.url, `${type} URL`, LIMITS.url);
-  if (["flight", "transfer"].includes(type)) assertDate(data.date, `${type} date`);
   if (type === "stay-summary") {
     assertDate(data.checkin, "stay-summary check-in date");
     assertDate(data.checkout, "stay-summary check-out date");
@@ -148,7 +180,46 @@ function validateTextBlock(data, type) {
   }
 }
 
+function validateTransportBlockData(data, type) {
+  assertOptionalTextFields(data, ["mapUrl", "websiteUrl"], type, LIMITS.url);
+  assertOptionalTextFields(data, ["notes"], type);
+  validateTransportTiming(data, type);
+  validateTransportCovers(data, type);
+  validateTransportChoices(data, type);
+  assertDate(data.date, `${type} date`);
+}
+
+function validateTransportTiming(data, type) {
+  for (const field of ["departureDate", "arrivalDate"]) {
+    if (data[field] !== undefined) assertDate(data[field], `${type} ${field}`);
+  }
+  for (const field of ["departureTimeZone", "arrivalTimeZone"]) {
+    if (data[field] === undefined) continue;
+    assertText(data[field], `${type} ${field}`, 100);
+    if (data[field] && !isValidTimeZone(data[field])) throw new TypeError(`Invalid ${type} ${field}`);
+  }
+}
+
+function validateTransportChoices(data, type) {
+  if (data.directionMode !== undefined && !TRANSPORT_DIRECTIONS.has(data.directionMode)) throw new TypeError(`Invalid ${type} direction mode`);
+  assertOptionalInteger(data.seatCount, `${type} seat count`, 0, 20);
+  if (type === "flight") validateFlightChoices(data);
+}
+
+function validateFlightChoices(data) {
+  if (data.serviceType !== undefined && !FLIGHT_SERVICE_TYPES.has(data.serviceType)) throw new TypeError("Invalid flight service type");
+  assertOptionalInteger(data.stopCount, "flight stop count", 0, 9);
+  if (data.serviceType === "layover" && (!Number.isInteger(data.stopCount) || data.stopCount < 1)) throw new TypeError("Invalid flight layover stop count");
+  if (data.serviceType === "direct" && data.stopCount !== undefined && data.stopCount !== 0) throw new TypeError("Invalid direct flight stop count");
+}
+
+function assertOptionalInteger(value, label, minimum, maximum) {
+  if (value === undefined) return;
+  if (!Number.isInteger(value) || value < minimum || value > maximum) throw new TypeError(`Invalid ${label}`);
+}
+
 function validateTransportCovers(data, type) {
+  validateCover(data.providerCover, `${type} provider cover`);
   validateCover(data.originCover, `${type} origin cover`);
   validateCover(data.destinationCover, `${type} destination cover`);
 }
@@ -168,6 +239,7 @@ function validateStayDistances(data) {
     assertRecord(item, "stay distance landmark");
     assertTextFields(item, ["name", "address", "drivingDistance", "drivingTime", "walkingDistance", "walkingTime", "cyclingDistance", "cyclingTime"], "stay distance landmark", LIMITS.label);
     assertTextFields(item, ["drivingUrl", "walkingUrl", "cyclingUrl"], "stay distance landmark", LIMITS.url);
+    assertOptionalTextFields(item, ["mapUrl"], "stay distance landmark", LIMITS.url);
     validateCover(item.cover, "stay distance landmark cover");
   }
 }
@@ -229,6 +301,12 @@ function validateFoodOptions(options, meal, ids) {
     assertRecord(option, `${meal} food option`);
     assertUniqueId(option, ids, `${meal} food option`);
     assertTextFields(option, ["name", "mapUrl", "websiteUrl"], `${meal} food option`);
+    assertOptionalTextFields(option, [
+      "comment",
+      "drivingDistance", "cyclingDistance", "walkingDistance",
+      "drivingTime", "cyclingTime", "walkingTime",
+    ], `${meal} food option`);
+    if (option.priority !== undefined) assertPriority(option.priority, `${meal} food option priority`);
     validateCover(option.cover, `${meal} food option cover`);
   }
 }

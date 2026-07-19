@@ -23,10 +23,11 @@ test("renders centered nearest-first landmarks with Maps-only and route links", 
   assert.equal((view.match(/travelmode=driving/g) ?? []).length, 4);
   assert.equal((view.match(/travelmode=walking/g) ?? []).length, 4);
   assert.equal((view.match(/travelmode=bicycling/g) ?? []).length, 4);
-  assert.match(view, /Driving/);
+  assert.match(view, /aria-label="De carro directions/);
   assert.doesNotMatch(view, /By car/);
-  assert.match(view, /Walking/);
-  assert.match(view, /Cycling/);
+  assert.match(view, /aria-label="A pé directions/);
+  assert.match(view, /aria-label="De bicicleta directions/);
+  assert.doesNotMatch(view, /<small>(?:De carro|De bicicleta|A pé)<\/small>/);
   assert.equal((view.match(/class="distance-time"/g) ?? []).length, 12);
   assert.equal((view.match(/class="map-link"/g) ?? []).length, 4);
   assert.doesNotMatch(view, /class="website-link"/);

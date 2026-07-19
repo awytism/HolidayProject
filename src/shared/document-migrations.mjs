@@ -8,17 +8,28 @@ import {
 } from "./date-utils.mjs";
 import { DOCUMENT_SCHEMA_VERSION, validateDocument } from "./document-schema.mjs";
 
+const DOCUMENT_MIGRATIONS = new Map([
+  [2, migrateV2ToV3],
+  [3, migrateV3ToV4],
+  [4, migrateV4ToV5],
+  [5, migrateV5ToV6],
+  [6, migrateV6ToV7],
+  [7, migrateV7ToV8],
+  [8, migrateV8ToV9],
+  [9, migrateV9ToV10],
+  [10, migrateV10ToV11],
+  [11, migrateV11ToV12],
+]);
+
 export function migrateDocument(document) {
   assertDocumentVersion(document);
-  if (document.schemaVersion === DOCUMENT_SCHEMA_VERSION) return validatedClone(document);
-  if (document.schemaVersion === 8) return migrateV8ToV9(document);
-  if (document.schemaVersion === 7) return migrateV8ToV9(migrateV7ToV8(document));
-  if (document.schemaVersion === 6) return migrateV8ToV9(migrateV7ToV8(migrateV6ToV7(document)));
-  if (document.schemaVersion === 5) return migrateV8ToV9(migrateV7ToV8(migrateV6ToV7(migrateV5ToV6(document))));
-  if (document.schemaVersion === 4) return migrateV8ToV9(migrateV7ToV8(migrateV6ToV7(migrateV5ToV6(migrateV4ToV5(document)))));
-  if (document.schemaVersion === 3) return migrateV8ToV9(migrateV7ToV8(migrateV6ToV7(migrateV5ToV6(migrateV4ToV5(migrateV3ToV4(document))))));
-  if (document.schemaVersion === 2) return migrateV8ToV9(migrateV7ToV8(migrateV6ToV7(migrateV5ToV6(migrateV4ToV5(migrateV3ToV4(migrateV2ToV3(document)))))));
-  throw new TypeError("Unsupported document schema");
+  let candidate = document;
+  while (candidate.schemaVersion !== DOCUMENT_SCHEMA_VERSION) {
+    const migrate = DOCUMENT_MIGRATIONS.get(candidate.schemaVersion);
+    if (!migrate) throw new TypeError("Unsupported document schema");
+    candidate = migrate(candidate);
+  }
+  return validatedClone(candidate);
 }
 
 export function migrateV2ToV3(document) {
@@ -115,11 +126,98 @@ export function migrateV8ToV9(document) {
   if (document.schemaVersion !== 8) throw new TypeError("Expected document schema version 8");
 
   const candidate = structuredClone(document);
-  candidate.schemaVersion = DOCUMENT_SCHEMA_VERSION;
+  candidate.schemaVersion = 9;
   assertSections(candidate.sections);
   for (const block of candidate.sections.agenda) upgradeAgendaRouteFields(block);
+  return candidate;
+}
+
+export function migrateV9ToV10(document) {
+  assertDocumentVersion(document);
+  if (document.schemaVersion === DOCUMENT_SCHEMA_VERSION) return validatedClone(document);
+  if (document.schemaVersion !== 9) throw new TypeError("Expected document schema version 9");
+
+  const candidate = structuredClone(document);
+  candidate.schemaVersion = 10;
+  assertSections(candidate.sections);
+  for (const block of candidate.sections.stay) upgradeCasaSolDaSerra(block);
+  return candidate;
+}
+
+export function migrateV10ToV11(document) {
+  assertDocumentVersion(document);
+  if (document.schemaVersion === DOCUMENT_SCHEMA_VERSION) return validatedClone(document);
+  if (document.schemaVersion !== 10) throw new TypeError("Expected document schema version 10");
+
+  const candidate = structuredClone(document);
+  candidate.schemaVersion = 11;
+  assertSections(candidate.sections);
+  const defaults = defaultMealRouteDistances();
+  for (const block of candidate.sections.agenda) upgradeMealRouteDistances(block, defaults);
+  return candidate;
+}
+
+export function migrateV11ToV12(document) {
+  assertDocumentVersion(document);
+  if (document.schemaVersion === DOCUMENT_SCHEMA_VERSION) return validatedClone(document);
+  if (document.schemaVersion !== 11) throw new TypeError("Expected document schema version 11");
+
+  const candidate = structuredClone(document);
+  candidate.schemaVersion = DOCUMENT_SCHEMA_VERSION;
+  assertSections(candidate.sections);
+  const defaults = defaultMealRouteTimes();
+  for (const block of candidate.sections.agenda) upgradeMealRouteTimes(block, defaults);
   validateDocument(candidate);
   return candidate;
+}
+
+const MEAL_ROUTE_DISTANCE_FIELDS = Object.freeze([
+  "drivingDistance",
+  "cyclingDistance",
+  "walkingDistance",
+]);
+const MEAL_ROUTE_TIME_FIELDS = Object.freeze([
+  "drivingTime",
+  "cyclingTime",
+  "walkingTime",
+]);
+
+function defaultMealRouteDistances() {
+  const options = createDefaultDocument().sections.agenda
+    .filter((block) => block.type === "day")
+    .flatMap((block) => Object.values(block.data.meals).flat());
+  return new Map(options.map((option) => [option.name, option]));
+}
+
+function upgradeMealRouteDistances(block, defaults) {
+  if (block.type !== "day") return;
+  for (const option of Object.values(block.data.meals).flat()) {
+    const fallback = defaults.get(option.name) ?? {};
+    const fields = MEAL_ROUTE_DISTANCE_FIELDS.map((field) => [
+      field,
+      typeof option[field] === "string" ? option[field] : fallback[field] ?? "",
+    ]);
+    Object.assign(option, Object.fromEntries(fields));
+  }
+}
+
+function defaultMealRouteTimes() {
+  const options = createDefaultDocument().sections.agenda
+    .filter((block) => block.type === "day")
+    .flatMap((block) => Object.values(block.data.meals).flat());
+  return new Map(options.map((option) => [option.name, option]));
+}
+
+function upgradeMealRouteTimes(block, defaults) {
+  if (block.type !== "day") return;
+  for (const option of Object.values(block.data.meals).flat()) {
+    const fallback = defaults.get(option.name) ?? {};
+    const fields = MEAL_ROUTE_TIME_FIELDS.map((field) => [
+      field,
+      typeof option[field] === "string" ? option[field] : fallback[field] ?? "",
+    ]);
+    Object.assign(option, Object.fromEntries(fields));
+  }
 }
 
 function validatedClone(document) {
@@ -154,7 +252,24 @@ export function migrateCustomBlock(block, options) {
   if (options.sourceVersion < 7) upgradeStayDistanceCyclingBlock(candidate);
   if (options.sourceVersion < 8) upgradeTransportLocationCovers(candidate);
   if (options.sourceVersion < 9) upgradeAgendaRouteFields(candidate);
+  if (options.sourceVersion < 10) upgradeCasaSolDaSerra(candidate);
+  if (options.sourceVersion < 11) upgradeMealRouteDistances(candidate, defaultMealRouteDistances());
+  if (options.sourceVersion < 12) upgradeMealRouteTimes(candidate, defaultMealRouteTimes());
   return candidate;
+}
+
+function upgradeCasaSolDaSerra(block) {
+  if (!isStaySummary(block)) return;
+  if (!block.data || typeof block.data !== "object") throw new TypeError("Invalid stay summary");
+  if (!["Casa Sol da Serra", "Casa do Sol"].includes(block.data.name)) return;
+  block.data.name = "Casa Sol da Serra";
+  if (block.data.subtitle === "Hidro · Bikes · Centro") block.data.subtitle = "Incrível Casa com Hidro e Bikes";
+  if (!block.data.checkinTime) block.data.checkinTime = "14:00";
+  if (!block.data.checkoutTime) block.data.checkoutTime = "11:00";
+}
+
+function isStaySummary(block) {
+  return Boolean(block) && typeof block === "object" && block.type === "stay-summary";
 }
 
 function migrateBlockDates(block, range) {
@@ -261,6 +376,8 @@ function upgradeMeal(value, blockId, meal) {
     name: value,
     mapUrl: "",
     websiteUrl: "",
+    comment: "",
+    priority: "medium",
     cover: null,
   }];
 }
@@ -271,9 +388,10 @@ function upgradeFoodOption(option) {
     ...option,
     mapUrl: typeof option.mapUrl === "string" ? option.mapUrl : "",
     websiteUrl: typeof option.websiteUrl === "string" ? option.websiteUrl : "",
+    comment: typeof option.comment === "string" ? option.comment : "",
+    priority: normalizePriority(option.priority),
     cover: option.cover ?? null,
   };
-  delete upgraded.priority;
   return upgraded;
 }
 

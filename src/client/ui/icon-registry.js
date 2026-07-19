@@ -1,4 +1,4 @@
-const SVG_OPEN = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">';
+const SVG_OPEN = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">';
 
 const ACTION_ICON_BODIES = Object.freeze({
   "arrow-down": '<path d="M12 4v16m-6-6 6 6 6-6"/>',
@@ -16,6 +16,7 @@ const ACTION_ICON_BODIES = Object.freeze({
   "map-pin": '<path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="3"/>',
   palette: '<path d="M12 3a9 9 0 1 0 0 18h1.5a2 2 0 0 0 0-4H12a2 2 0 0 1 0-4h3a6 6 0 0 0 0-12h-3Z"/><circle cx="7.5" cy="10" r=".7"/><circle cx="9" cy="6.5" r=".7"/><circle cx="14" cy="6" r=".7"/>',
   "panel-plus": '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M8 4v16m5-8h5m-2.5-2.5v5"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
   pencil: '<path d="m4 16-.8 4.8L8 20 19 9l-4-4L4 16Z"/><path d="m13.5 6.5 4 4"/>',
   replace: '<path d="M20 7h-7a5 5 0 0 0-5 5v1m12-6-3-3m3 3-3 3M4 17h7a5 5 0 0 0 5-5v-1m-12 6 3 3m-3-3 3-3"/>',
   trash: '<path d="M4 7h16M9 7V4h6v3m3 0-1 14H7L6 7m4 4v6m4-6v6"/>',
@@ -26,10 +27,18 @@ const ACTION_ICON_BODIES = Object.freeze({
 
 const TRUSTED_ICON_BODIES = Object.freeze({
   accessibility: '<circle cx="12" cy="4" r="2"/><path d="M5 9h14M12 6v7m0 0-4 7m4-7 4 7"/>',
+  airplane: '<path d="M17.8 19 16 11l3.5-3.5c1.5-1.5 2-3.5 1-4.5s-3-.5-4.5 1L12.5 7.5l-8-1.8L3 7l6.5 4L6 14.5 3.5 14 2 15.5l4 2 2 4L9.5 20 9 17.5l3.5-3.5 4 6.5 1.3-1.5Z"/>',
+  "amenity-bathtub": '<path d="M3 11h18v4a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5v-4Z"/><path d="M18 11V6a4 4 0 0 0-8 0h3M7 20l-1 2m11-2 1 2"/>',
+  "amenity-laptop": '<rect x="5" y="4" width="14" height="11" rx="1.5"/><path d="M3 19h18"/>',
+  "amenity-oven": '<rect x="4" y="2" width="16" height="20" rx="1.5"/><path d="M4 8h16M7 5h.01M10.5 5h.01M14 5h.01M17 5h.01"/><rect x="7" y="11" width="10" height="8" rx="1"/>',
+  "amenity-pillow": '<path d="M4 4c2 0 3 1 5 1h6c2 0 3-1 5-1 1 0 0 3 0 5v6c0 2 1 5 0 5-2 0-3-1-5-1H9c-2 0-3 1-5 1-1 0 0-3 0-5V9c0-2-1-5 0-5Z"/><path d="m4.5 4.5 3 2.5m12-2.5-3 2.5m-12 12.5 3-2.5m12 2.5-3-2.5"/>',
+  "amenity-sofa": '<path d="M5 11V7a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3v4"/><path d="M5 10a3 3 0 0 0-3 3v6h20v-6a3 3 0 0 0-3-3 2 2 0 0 0-2 2v3H7v-3a2 2 0 0 0-2-2ZM5 19v2m14-2v2"/>',
+  "amenity-tree": '<path d="M12 22v-8m0 3-4-4m4 4 5-5"/><path d="M7 18a5 5 0 0 1-1.5-9.8A6.5 6.5 0 0 1 18 9.5 4.5 4.5 0 0 1 17 18"/>',
+  "amenity-washer": '<rect x="4" y="2" width="16" height="20" rx="2"/><path d="M4 7h16M8 4.5h.01M14 4h3"/><circle cx="12" cy="14" r="5"/><circle cx="12" cy="14" r="3.5"/>',
   baby: '<circle cx="12" cy="8" r="4"/><path d="M8 8h8M6 22v-5a6 6 0 0 1 12 0v5M10 12v3h4v-3"/>',
   balcony: '<path d="M4 21V5h16v16M4 12h16M7 12v9m5-9v9m5-9v9"/>',
   bath: '<path d="M3 12h18v3a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5v-3ZM6 12V6a3 3 0 0 1 6 0"/><path d="M8 20v2m8-2v2"/>',
-  bed: '<path d="M3 20v-9h18v9M3 16h18M6 11V7h5a3 3 0 0 1 3 3v1"/>',
+  bed: '<path d="M3 19V7m18 12v-6a3 3 0 0 0-3-3H3v9h18ZM7 10V7h4a3 3 0 0 1 3 3M5 19v2m14-2v2"/>',
   bell: '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9ZM10 21h4"/>',
   bike: '<circle cx="6" cy="17" r="4"/><circle cx="18" cy="17" r="4"/><path d="m6 17 4-8 4 8h-4l5-9h3M8 9h4"/>',
   blinds: '<path d="M5 3h14v18H5zM5 8h14M5 13h14M5 18h14"/>',
@@ -47,6 +56,7 @@ const TRUSTED_ICON_BODIES = Object.freeze({
   "airline-seat": '<path d="M7 2.5c-1.4 0-2.4 1.3-2.1 2.7l2.4 10.7c.2 1.1 1.2 1.9 2.4 1.9H19a2.6 2.6 0 0 0 0-5.2h-8L9 4.5a2 2 0 0 0-2-2Z"/><path d="M9.8 8.2h5.3a3.5 3.5 0 0 1 3.5 3.5h-7.9M10.5 17.8 8 22h10l-2.5-4.2"/>',
   chair: '<path d="M6 13h12v7H6v-7Zm2 7v2m8-2v2M8 13V7a4 4 0 0 1 8 0v6"/>',
   clothesline: '<path d="M3 5v16m18-16v16M3 8c6 3 12 3 18 0M8 10v5h4v-4m3-1v5h4v-6"/>',
+  clipboard: '<rect x="4" y="4" width="16" height="18" rx="2"/><path d="M9 4V2h6v2M8 9h8m-8 5h8m-8 5h5"/>',
   cloud: '<path d="M7 18h11a4 4 0 0 0 .5-8A6 6 0 0 0 7 8a5 5 0 0 0 0 10Z"/><path d="M9 13h6"/>',
   coffee: '<path d="M5 9h12v6a5 5 0 0 1-5 5h-2a5 5 0 0 1-5-5V9Zm12 2h1a3 3 0 0 1 0 6h-2M8 3v3m4-3v3m4-3v3"/>',
   coins: '<ellipse cx="9" cy="7" rx="6" ry="3"/><path d="M3 7v4c0 2 3 3 6 3m6-7v3M8 14c0 2 3 3 6 3s6-1 6-3m-12 0v4c0 2 3 3 6 3s6-1 6-3v-4"/>',
@@ -90,6 +100,7 @@ const TRUSTED_ICON_BODIES = Object.freeze({
   pillow: '<rect x="4" y="6" width="16" height="12" rx="4"/><path d="M8 9c2 2 2 4 0 6m8-6c-2 2-2 4 0 6"/>',
   play: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m10 9 5 3-5 3V9Z"/>',
   pool: '<path d="M3 9c2 0 2 2 4 2s2-2 4-2 2 2 4 2 2-2 4-2 2 2 2 2M3 15c2 0 2 2 4 2s2-2 4-2 2 2 4 2 2-2 4-2 2 2 2 2M7 9V4h5m0 5V4h5"/>',
+  "priority-star": '<path d="m12 2.9 2.82 5.72 6.31.92-4.56 4.44 1.07 6.28L12 17.3l-5.64 2.96 1.07-6.28-4.56-4.44 6.31-.92L12 2.9Z"/>',
   safe: '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="12" cy="12" r="4"/><path d="M12 8v4l3 2M6 7h.01M6 17h.01"/>',
   salt: '<path d="M8 8h8l1 13H7L8 8Zm1-5h6l1 5H8l1-5ZM10 5h.01M14 5h.01"/>',
   sauna: '<path d="M4 21V9h16v12M4 15h16M8 15v6m8-6v6M8 3c-2 2 2 3 0 5m5-5c-2 2 2 3 0 5"/>',
@@ -97,9 +108,11 @@ const TRUSTED_ICON_BODIES = Object.freeze({
   shower: '<path d="M5 21V7a4 4 0 0 1 8 0v1m-3 0h6l2 4H8l2-4Zm0 8v1m4-1v2m4-2v1"/>',
   smoking: '<path d="M3 15h14v4H3v-4Zm14 0h2v4h-2M8 11c0-3 5-2 5-5 0-2-1-3-3-3m4 8c0-2 4-2 4-5"/>',
   snowflake: '<path d="M12 2v20M4 6l16 12M20 6 4 18M9 4l3 3 3-3M9 20l3-3 3 3"/>',
+  soda: '<path d="M7 7h10l-1 14H8L7 7Zm-1-3h12M14 7l1-5h4M9 12h6"/>',
   speaker: '<path d="M5 9h4l5-4v14l-5-4H5V9Zm12 1c2 1 2 3 0 4m2-7c4 3 4 7 0 10"/>',
   spray: '<path d="M9 8h7l2 4v9H7v-9l2-4Zm1-4h5v4h-5V4Zm5 0 3 1m2-1h1m-2 4h2"/>',
   thermometer: '<path d="M10 14V5a3 3 0 0 1 6 0v9a5 5 0 1 1-6 0Z"/><path d="M13 7v10"/>',
+  toilet: '<path d="M9 3a3 3 0 0 1 6 0M6 4h12l-1 7H7L6 4Z"/><path d="M5 13h14M6 13c0 4 2.5 6 6 6s6-2 6-6m-2 5-1 4h6l-1-4"/>',
   towel: '<path d="M6 3h12v18H6V3Zm3 4h6M9 11h6M9 15h6"/>',
   toy: '<path d="m12 3 2.5 5 5.5.8-4 4 1 5.7-5-2.7-5 2.7 1-5.7-4-4 5.5-.8L12 3Z"/>',
   tree: '<path d="m12 2-5 7h3l-5 7h6v6h2v-6h6l-5-7h3l-5-7Z"/>',

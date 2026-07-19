@@ -2,7 +2,9 @@ import { addBlockAfter } from "./commands.js";
 import { BUILTIN_TEMPLATES, getBuiltinTemplate } from "./builtin-templates.js";
 import { escapeHtml } from "../utils/html.js";
 
-export function createTemplateController(api, auth, store, render, showToast) {
+export function createTemplateController(api, auth, store, render, options = {}) {
+  const showToast = options.showToast ?? (() => {});
+  const translate = options.translate ?? ((value) => value);
   const dialog = document.createElement("dialog");
   dialog.className = "template-dialog";
   document.body.append(dialog);
@@ -23,17 +25,17 @@ export function createTemplateController(api, auth, store, render, showToast) {
     insertion = { section, afterId };
     try {
       customTemplates = (await api.listTemplates()).templates;
-      dialog.innerHTML = renderPool(section, customTemplates);
+      dialog.innerHTML = renderPool(section, customTemplates, translate);
       dialog.showModal();
     } catch (error) { showToast(error.message); }
   }
 
   async function saveBlock(section, block) {
-    const name = window.prompt("Nome do modelo");
+    const name = window.prompt(translate("Template name"));
     if (!name?.trim()) return;
     try {
       await api.createTemplate(name.trim(), { sectionScope: section, block: structuredClone(block) }, csrf());
-      showToast(`Template “${name.trim()}” salvo`);
+      showToast(`${translate("Template")} “${name.trim()}” ${translate("saved")}`);
     } catch (error) { showToast(error.message); }
   }
 
@@ -67,22 +69,22 @@ export function createTemplateController(api, auth, store, render, showToast) {
 
   async function deleteTemplate(id) {
     const template = customTemplates.find((item) => item.id === id);
-    if (!window.confirm(`Excluir o modelo “${template.name}”?`)) return;
+    if (!window.confirm(`${translate("Delete template")} “${template.name}”?`)) return;
     try {
       await api.deleteTemplate(id, template.revision, csrf());
       customTemplates = customTemplates.filter((item) => item.id !== id);
-      dialog.innerHTML = renderPool(insertion.section, customTemplates);
+      dialog.innerHTML = renderPool(insertion.section, customTemplates, translate);
     } catch (error) { showToast(error.message); }
   }
 
   async function renameTemplate(id) {
     const template = customTemplates.find((item) => item.id === id);
-    const name = window.prompt("Renomear modelo", template.name);
+    const name = window.prompt(translate("Rename template"), template.name);
     if (!name?.trim()) return;
     try {
       const updated = await api.updateTemplate(id, template.revision, name.trim(), template.template, csrf());
       customTemplates = customTemplates.map((item) => item.id === id ? updated : item);
-      dialog.innerHTML = renderPool(insertion.section, customTemplates);
+      dialog.innerHTML = renderPool(insertion.section, customTemplates, translate);
     } catch (error) { showToast(error.message); }
   }
 
@@ -105,15 +107,15 @@ function replaceIds(value, idFactory) {
   }
 }
 
-function renderPool(section, customTemplates) {
-  const builtins = BUILTIN_TEMPLATES.map((item) => templateCard(item, "builtin")).join("");
+function renderPool(section, customTemplates, translate) {
+  const builtins = BUILTIN_TEMPLATES.map((item) => templateCard(item, "builtin", translate)).join("");
   const custom = customTemplates.filter((item) => scopeAllows(item.template.sectionScope, section))
-    .map((item) => customCard(item)).join("");
-  return `<div class="template-pool"><button type="button" class="dialog-close" data-template-close aria-label="Fechar">×</button><small>Biblioteca de Blocos</small><h2>Inserir um Modelo</h2><input class="template-search" type="search" placeholder="Buscar modelos" aria-label="Buscar Modelos"><h3>Incluídos</h3><div class="template-grid">${builtins}</div><h3>Seus Modelos</h3><div class="template-grid">${custom || '<p class="template-empty">Nenhum modelo personalizado ainda.</p>'}</div></div>`;
+    .map((item) => customCard(item, translate)).join("");
+  return `<div class="template-pool"><button type="button" class="dialog-close" data-template-close aria-label="${translate("Close")}">×</button><small>${translate("Block Library")}</small><h2>${translate("Insert a Template")}</h2><input class="template-search" type="search" placeholder="${translate("Search templates")}" aria-label="${translate("Search templates")}"><h3>${translate("Included")}</h3><div class="template-grid">${builtins}</div><h3>${translate("Your Templates")}</h3><div class="template-grid">${custom || `<p class="template-empty">${translate("No custom templates yet.")}</p>`}</div></div>`;
 }
 
-function templateCard(item, kind) {
-  return `<button type="button" class="template-card" data-${kind}-template="${escapeHtml(item.id)}">${renderTemplatePrototype(item.type)}<strong>${escapeHtml(item.name)}</strong><span class="template-action">Inserir Bloco</span></button>`;
+function templateCard(item, kind, translate) {
+  return `<button type="button" class="template-card" data-${kind}-template="${escapeHtml(item.id)}">${renderTemplatePrototype(item.type)}<strong>${escapeHtml(translate(item.name))}</strong><span class="template-action">${translate("Insert Block")}</span></button>`;
 }
 
 export function renderTemplatePrototype(type) {
@@ -129,8 +131,8 @@ export function renderTemplatePrototype(type) {
   return `<span class="template-prototype is-${escapeHtml(type)}" aria-hidden="true">${shapes[type] ?? ""}</span>`;
 }
 
-function customCard(item) {
-  return `<div class="template-card custom"><button type="button" data-custom-template="${escapeHtml(item.id)}"><strong>${escapeHtml(item.name)}</strong><span>Inserir Bloco</span></button><div><button type="button" data-rename-template="${escapeHtml(item.id)}">Renomear</button><button type="button" data-delete-template="${escapeHtml(item.id)}">Excluir</button></div></div>`;
+function customCard(item, translate) {
+  return `<div class="template-card custom"><button type="button" data-custom-template="${escapeHtml(item.id)}"><strong>${escapeHtml(item.name)}</strong><span>${translate("Insert Block")}</span></button><div><button type="button" data-rename-template="${escapeHtml(item.id)}">${translate("Rename")}</button><button type="button" data-delete-template="${escapeHtml(item.id)}">${translate("Delete")}</button></div></div>`;
 }
 
 function scopeAllows(scope, section) { return scope === "all" || scope === section; }

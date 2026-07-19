@@ -11,14 +11,117 @@ import {
 test("accepts the complete schema v4 default document", () => {
   const document = createDefaultDocument();
   assert.equal(document.schemaVersion, DOCUMENT_SCHEMA_VERSION);
+  assert.equal(document.meta.brandName, "Dudu & Ale");
   assert.equal(validateDocument(document), true);
 
-  for (const blocks of Object.values(document.sections)) {
-    for (const block of blocks) assert.equal(block.cover, null);
-  }
-  for (const block of document.sections.agenda) {
-    for (const place of block.data.places ?? []) assert.equal(place.cover, null);
-  }
+  const allBlocks = Object.values(document.sections).flat();
+  const staySummary = document.sections.stay.find((block) => block.type === "stay-summary");
+  assert.deepEqual(staySummary.cover, {
+    url: "/assets/casa-sol-da-serra.webp",
+    alt: "Casa Sol da Serra and its garden in Gramado",
+    position: "center",
+  });
+  assert.equal(allBlocks.filter((block) => block !== staySummary).every((block) => block.cover === null), true);
+  const rioCover = {
+    url: "/assets/rio-de-janeiro-airport.png",
+    alt: "Aerial view of Rio de Janeiro and Sugarloaf Mountain",
+    position: "center",
+  };
+  const flights = document.sections.transport.filter((block) => block.type === "flight");
+  assert.deepEqual(flights[0].data.originCover, rioCover);
+  assert.deepEqual(flights[1].data.destinationCover, rioCover);
+  assert.equal(document.sections.transport.every((block) => block.data.providerCover === null), true);
+  const agendaPlaces = document.sections.agenda.flatMap((block) => block.data.places ?? []);
+  assert.equal(agendaPlaces.filter((place) => place.name === "Aeroporto Internacional Antônio Carlos Jobim").every((place) => JSON.stringify(place.cover) === JSON.stringify(rioCover)), true);
+  assert.equal(agendaPlaces.filter((place) => place.name !== "Aeroporto Internacional Antônio Carlos Jobim").every((place) => place.cover === null && place.image === ""), true);
+  const airportLabels = [
+    ...document.sections.transport.flatMap((block) => [block.data.origin, block.data.destination]),
+    ...agendaPlaces.map((place) => place.name),
+  ];
+  assert.equal(airportLabels.includes("Aeroporto Internacional Antônio Carlos Jobim"), true);
+  assert.equal(airportLabels.includes("Aeroporto Internacional Salgado Filho"), true);
+  assert.equal(airportLabels.some((label) => /RIOgaleão|GIG Airport|POA Airport|Salgado Filho International Airport/.test(label)), false);
+  const mealOptions = document.sections.agenda.flatMap((block) => Object.values(block.data.meals ?? {}).flat());
+  assert.equal(mealOptions.every((option) => option.cover === null), true);
+  assert.equal(mealOptions.every((option) => [
+    option.drivingTime,
+    option.cyclingTime,
+    option.walkingTime,
+  ].every((value) => typeof value === "string")), true);
+});
+
+test("validates structured transport direction, stop and seat choices", () => {
+  const document = createDefaultDocument();
+  const flight = document.sections.transport.find((block) => block.type === "flight");
+  flight.data.directionMode = "inbound";
+  flight.data.serviceType = "layover";
+  flight.data.stopCount = 2;
+  flight.data.seatCount = 3;
+  assert.equal(validateDocument(document), true);
+
+  flight.data.stopCount = 0;
+  assert.throws(() => validateDocument(document), /layover stop count/);
+  flight.data.stopCount = 2;
+  flight.data.seatCount = 21;
+  assert.throws(() => validateDocument(document), /seat count/);
+});
+
+test("accepts transport endpoint dates and IANA time zones", () => {
+  const document = createDefaultDocument();
+  const flight = document.sections.transport.find((block) => block.type === "flight");
+  flight.data.departureDate = "2026-10-24";
+  flight.data.arrivalDate = "2026-10-25";
+  flight.data.departureTimeZone = "America/Sao_Paulo";
+  flight.data.arrivalTimeZone = "Europe/London";
+  assert.equal(validateDocument(document), true);
+
+  flight.data.arrivalTimeZone = "Not/A_Time_Zone";
+  assert.throws(() => validateDocument(document), /arrivalTimeZone/);
+});
+
+test("accepts legacy optional headings and validates edited pill titles", () => {
+  const legacy = createDefaultDocument();
+  delete legacy.meta.brandName;
+  delete legacy.meta.transportTitle;
+  delete legacy.meta.stayTitle;
+  delete legacy.meta.agendaTitle;
+  assert.equal(validateDocument(legacy), true);
+
+  const edited = createDefaultDocument();
+  edited.meta.brandName = "Our Adventures";
+  edited.meta.transportTitle = "Travel Details";
+  assert.equal(validateDocument(edited), true);
+
+  edited.meta.transportTitle = "x".repeat(501);
+  assert.throws(() => validateDocument(edited), /meta transportTitle/);
+});
+
+test("accepts bounded in-place text and trusted-icon override records", () => {
+  const document = createDefaultDocument();
+  document.meta.inlineText = {
+    "en-GB:block:agenda:agenda-day-1:text:4": "A custom place description",
+    "shared:brand:text:0": "Dudu & Ale",
+  };
+  document.meta.inlineIcons = {
+    "nav:transport": "airplane",
+    "section-title:stay:icon:0": "home",
+  };
+  assert.equal(validateDocument(document), true);
+
+  document.meta.inlineIcons["x".repeat(321)] = "home";
+  assert.throws(() => validateDocument(document), /inline icons key/);
+});
+
+test("accepts an optional uploaded or remote hero cover", () => {
+  const document = createDefaultDocument();
+  document.meta.heroCover = { url: "https://example.com/hero.jpg", alt: "Gramado", position: "center" };
+  assert.equal(validateDocument(document), true);
+
+  document.meta.heroCover = { mediaId: "hero-upload-1", alt: "Gramado", position: "top" };
+  assert.equal(validateDocument(document), true);
+
+  document.meta.heroCover = { url: "javascript:alert(1)", alt: "Gramado", position: "center" };
+  assert.throws(() => validateDocument(document), /meta hero cover/);
 });
 
 test("seeds grouped amenities and the exact property anatomy", () => {
@@ -27,16 +130,40 @@ test("seeds grouped amenities and the exact property anatomy", () => {
   const anatomy = stay.find((block) => block.type === "stay-anatomy");
 
   const amenityItems = amenities.data.groups.flatMap((group) => group.items);
-  assert.ok(amenityItems.length >= 3);
+  assert.equal(amenities.data.title, "Listing Highlights");
+  assert.deepEqual(amenities.data.groups.map((group) => group.label), [
+    "Kitchen",
+    "Sleep and Laundry",
+    "Bath and Spa",
+    "Home Comforts",
+    "Work and Play",
+    "Outdoor Living",
+  ]);
+  assert.equal(amenityItems.length, 24);
+  amenities.data.groups.forEach((group) => assert.equal(group.items.length, 4));
+  assert.equal(new Set(amenityItems.map((item) => normalizeAmenityLabel(item.label))).size, amenityItems.length);
+  assert.equal(amenityItems.find((item) => item.presetId === "linens").label, "Bed linens and wardrobes");
+  const media = amenities.data.groups.find((group) => group.label === "Work and Play");
+  assert.deepEqual(media.items.map((item) => item.label), [
+    "Fast, free Wi-Fi",
+    "Cable and satellite TV",
+    "Dedicated workspace",
+    "Video games",
+  ]);
+  assert.doesNotMatch(media.items.map((item) => item.label).join(" "), /streaming/i);
   amenityItems.forEach((item) => assert.deepEqual(Object.keys(item), ["id", "presetId", "label", "iconKey"]));
   assert.equal(anatomy.data.area, "90 m²");
   assert.deepEqual(anatomy.data.spaces.map((space) => [space.label, space.beds[0].quantity, space.beds[0].label]), [
-    ["Room 1", 1, "Double Bed"],
-    ["Room 2", 1, "Double Bed"],
-    ["Room 3", 1, "Double Bed"],
-    ["Living Room", 1, "Sofa Bed"],
+    ["Quarto 1", 1, "Cama de Casal"],
+    ["Quarto 2", 1, "Cama de Casal"],
+    ["Quarto 3", 1, "Cama de Casal"],
+    ["Sala de Estar", 1, "Sofá-Cama"],
   ]);
 });
+
+function normalizeAmenityLabel(label) {
+  return label.normalize("NFKD").replace(/[^a-z0-9]+/gi, " ").trim().toLowerCase();
+}
 
 test("accepts every generic block type in every section", () => {
   for (const section of ["transport", "stay", "agenda"]) {
@@ -62,6 +189,7 @@ test("preserves section-specific types and rejects misplaced or removed types", 
 test("validates remote and uploaded media as an exclusive union", () => {
   assert.equal(validateMedia(remoteMedia()), true);
   assert.equal(validateMedia({ mediaId: "XyZ_123-upload", alt: "Uploaded", position: "top" }), true);
+  assert.equal(validateMedia({ url: "/assets/casa-sol-da-serra.webp", alt: "Bundled", position: "center" }), true);
 
   const invalid = [
     { url: "http://example.com/image.jpg", alt: "", position: "center" },

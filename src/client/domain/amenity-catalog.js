@@ -57,6 +57,7 @@ export const AMENITY_CATALOG = Object.freeze([
   preset("hot-tub", "Hidromassagem", "bathroom-wellbeing", "hot-tub", ["hydro", "hydromassage", "jacuzzi", "hidromassagem"]),
   preset("bathtub", "Banheira", "bathroom-wellbeing", "bath", ["bath", "banheira"]),
   preset("shower", "Chuveiro", "bathroom-wellbeing", "shower", ["walk-in shower", "chuveiro"]),
+  preset("toilet", "Vaso sanitário", "bathroom-wellbeing", "toilet", ["toilet", "lavatory", "vaso", "sanitario"]),
   preset("hair-dryer", "Secador de cabelo", "bathroom-wellbeing", "hair-dryer", ["blow dryer", "secador de cabelo"]),
   preset("shampoo", "Shampoo", "bathroom-wellbeing", "bottle", ["xampu"]),
   preset("conditioner", "Condicionador", "bathroom-wellbeing", "bottle", ["hair conditioner", "condicionador"]),

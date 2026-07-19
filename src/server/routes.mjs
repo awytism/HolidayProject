@@ -25,6 +25,11 @@ export function createGramadoRouter(options = {}) {
     limit: service.config.maxMediaBytes,
     type: () => true,
   }), wrap(handlers.postMedia));
+  router.post("/attachments/:id/download", express.json({
+    limit: "4kb",
+    strict: true,
+    type: "application/json",
+  }), wrap(handlers.downloadAttachment));
   router.post("/attachments/:section/:blockId", express.raw({
     limit: service.config.maxAttachmentBytes,
     type: () => true,
@@ -39,6 +44,7 @@ export function createGramadoRouter(options = {}) {
   router.get("/document", wrap(handlers.getDocument));
   router.put("/document", wrap(handlers.putDocument));
   router.get("/session", wrap(handlers.getSession));
+  router.post("/session/edit", wrap(handlers.enableEditing));
   router.get("/attachments", wrap(handlers.listAttachments));
   router.post("/login", wrap(handlers.login));
   router.post("/logout", wrap(handlers.logout));
@@ -120,11 +126,23 @@ function createHandlers(service) {
     },
 
     async getAttachmentContent(request, response) {
+      if (request.query.mode !== "preview") {
+        throw new ApiError(403, "attachment_password_required", "Use the password-protected download action");
+      }
       const result = await service.readAttachment({
         ...sessionCredentials(request, service),
         id: request.params.id,
       });
-      sendAttachment(response, result, request.query.mode === "preview");
+      sendAttachment(response, result, true);
+    },
+
+    async downloadAttachment(request, response) {
+      const result = await service.downloadAttachment({
+        ...mutationCredentials(request, service),
+        id: request.params.id,
+        password: request.body?.password,
+      });
+      sendAttachment(response, result, false);
     },
 
     async deleteAttachment(request, response) {
@@ -152,6 +170,12 @@ function createHandlers(service) {
     getSession(request, response) {
       const session = service.getSessionState(readSessionCookie(request, service.config.cookieName));
       if (session.isNew) setSessionCookie(response, session.token, service.config);
+      response.json(publicSession(session));
+    },
+
+    enableEditing(request, response) {
+      const session = service.enableEditing(mutationCredentials(request, service));
+      setSessionCookie(response, session.token, service.config);
       response.json(publicSession(session));
     },
 

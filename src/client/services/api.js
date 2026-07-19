@@ -12,6 +12,10 @@ export function createApi(baseUrl = "/api") {
   return {
     getDocument: () => request(`${baseUrl}/document`),
     getSession: () => request(`${baseUrl}/session`),
+    enableEditing: (csrfToken) => request(`${baseUrl}/session/edit`, {
+      method: "POST",
+      csrfToken,
+    }),
     login: (password, csrfToken) => request(`${baseUrl}/login`, {
       method: "POST",
       csrfToken,
@@ -46,6 +50,11 @@ export function createApi(baseUrl = "/api") {
     }),
     deleteAttachment: (id, csrfToken) => request(`${baseUrl}/attachments/${encodeURIComponent(id)}`, { method: "DELETE", csrfToken }),
     attachmentContentUrl: (id, preview = false) => `${baseUrl}/attachments/${encodeURIComponent(id)}/content${preview ? "?mode=preview" : ""}`,
+    downloadAttachment: (id, password, csrfToken) => downloadFile(
+      `${baseUrl}/attachments/${encodeURIComponent(id)}/download`,
+      password,
+      csrfToken,
+    ),
     listTemplates: () => request(`${baseUrl}/custom-templates`),
     createTemplate: (name, template, csrfToken) => request(`${baseUrl}/custom-templates`, {
       method: "POST", csrfToken, body: { name, template },
@@ -89,4 +98,18 @@ async function uploadFile(url, file, csrfToken, method) {
   const payload = await response.json().catch(() => null);
   if (!response.ok) throw new ApiError(response.status, payload);
   return payload;
+}
+
+async function downloadFile(url, password, csrfToken) {
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken, Accept: "application/octet-stream" },
+    credentials: "same-origin",
+    body: JSON.stringify({ password }),
+  });
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null);
+    throw new ApiError(response.status, payload);
+  }
+  return response.blob();
 }

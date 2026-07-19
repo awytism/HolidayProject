@@ -2,6 +2,8 @@ const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/;
 const MONTH_PATTERN = "Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?|jan\\.?|fev\\.?|mar\\.?|abr\\.?|mai\\.?|jun\\.?|jul\\.?|ago\\.?|set\\.?|out\\.?|nov\\.?|dez\\.?";
 const MONTH_DATE = new RegExp(`\\b(${MONTH_PATTERN})\\s+(\\d{1,2})(?:,?\\s+(\\d{4}))?`, "i");
 const MONTH_DATE_GLOBAL = new RegExp(MONTH_DATE.source, "gi");
+const BRITISH_DATE = new RegExp(`\\b(\\d{1,2})(?:st|nd|rd|th)?\\s+(${MONTH_PATTERN})(?:,?\\s+(\\d{4}))?`, "i");
+const BRITISH_DATE_GLOBAL = new RegExp(BRITISH_DATE.source, "gi");
 const PORTUGUESE_DATE = new RegExp(`\\b(\\d{1,2})(?:º)?\\s+de\\s+(${MONTH_PATTERN})(?:\\s+de|,)?\\s*(\\d{4})?`, "i");
 const PORTUGUESE_DATE_GLOBAL = new RegExp(PORTUGUESE_DATE.source, "gi");
 const MONTH_INDEX = new Map([
@@ -9,10 +11,52 @@ const MONTH_INDEX = new Map([
   ["jul", 6], ["aug", 7], ["sep", 8], ["oct", 9], ["nov", 10], ["dec", 11],
   ["fev", 1], ["abr", 3], ["mai", 4], ["ago", 7], ["set", 8], ["out", 9], ["dez", 11],
 ]);
-const MONTH_DAY = new Intl.DateTimeFormat("pt-BR", { month: "short", day: "numeric", timeZone: "UTC" });
-const FULL_DATE = new Intl.DateTimeFormat("pt-BR", { weekday: "long", month: "short", day: "numeric", timeZone: "UTC" });
-const MONTH = new Intl.DateTimeFormat("pt-BR", { month: "short", timeZone: "UTC" });
-const WEEKDAY = new Intl.DateTimeFormat("pt-BR", { weekday: "long", timeZone: "UTC" });
+const SUPPORTED_LOCALES = new Set(["en-GB", "pt-BR"]);
+const DATE_DISPLAY_FORMATS = new Set(["day-first", "month-first", "written"]);
+const TIME_DISPLAY_FORMATS = new Set(["24-hour", "12-hour"]);
+const UNCONFIRMED_TIMES = new Set([
+  "tbd",
+  "to confirm",
+  "time to confirm",
+  "a confirmar",
+  "horário a confirmar",
+  "horario a confirmar",
+]);
+let activeLocale = "en-GB";
+let activeDateDisplayFormat = "day-first";
+let activeTimeDisplayFormat = "24-hour";
+
+export function setDateLocale(locale) {
+  activeLocale = SUPPORTED_LOCALES.has(locale) ? locale : "en-GB";
+}
+
+export function getDateLocale() {
+  return activeLocale;
+}
+
+export function normalizeDateDisplayFormat(value) {
+  return DATE_DISPLAY_FORMATS.has(value) ? value : "day-first";
+}
+
+export function setDateDisplayFormat(value) {
+  activeDateDisplayFormat = normalizeDateDisplayFormat(value);
+}
+
+export function getDateDisplayFormat() {
+  return activeDateDisplayFormat;
+}
+
+export function normalizeTimeDisplayFormat(value) {
+  return TIME_DISPLAY_FORMATS.has(value) ? value : "24-hour";
+}
+
+export function setTimeDisplayFormat(value) {
+  activeTimeDisplayFormat = normalizeTimeDisplayFormat(value);
+}
+
+export function getTimeDisplayFormat() {
+  return activeTimeDisplayFormat;
+}
 
 export function parseIsoDate(value) {
   const match = typeof value === "string" ? ISO_DATE.exec(value) : null;
@@ -27,48 +71,206 @@ export function isIsoDate(value, { allowEmpty = true } = {}) {
   return allowEmpty && value === "" ? true : parseIsoDate(value) !== null;
 }
 
-export function formatFullDate(value, fallback = "Adicionar data") {
+export function formatFullDate(value, fallback = activeLocale === "pt-BR" ? "Adicionar data" : "Add date") {
   const date = parseIsoDate(value);
-  return date ? FULL_DATE.format(date) : fallback;
+  if (!date) return fallback;
+  if (activeLocale === "en-GB") {
+    const weekday = new Intl.DateTimeFormat(activeLocale, { weekday: "long", timeZone: "UTC" }).format(date);
+    return `${weekday}, ${formatRangeDate(date)}`;
+  }
+  return new Intl.DateTimeFormat(activeLocale, { weekday: "long", day: "numeric", month: "short", timeZone: "UTC" }).format(date);
 }
 
-export function formatDateRange(startValue, endValue, fallback = "Adicionar datas da viagem") {
+export function formatStayDate(value, fallback = activeLocale === "pt-BR" ? "Adicionar data" : "Add date") {
+  const date = parseIsoDate(value);
+  if (!date) return fallback;
+  if (activeLocale === "en-GB") {
+    const weekday = new Intl.DateTimeFormat(activeLocale, { weekday: "long", timeZone: "UTC" }).format(date);
+    return `${weekday}, ${formatEnglishTravelDate(date)}`;
+  }
+  return new Intl.DateTimeFormat(activeLocale, { weekday: "long", day: "numeric", month: "short", timeZone: "UTC" }).format(date);
+}
+
+export function formatDateRange(startValue, endValue, fallback = activeLocale === "pt-BR" ? "Adicionar datas da viagem" : "Add trip dates") {
   const start = parseIsoDate(startValue);
   const end = parseIsoDate(endValue);
   if (!start && !end) return fallback;
-  if (!start || !end) return `${MONTH_DAY.format(start ?? end)}, ${(start ?? end).getUTCFullYear()}`;
-  if (start.getTime() === end.getTime()) return `${MONTH_DAY.format(start)}, ${start.getUTCFullYear()}`;
+  if (!start || !end) return formatRangeDate(start ?? end, true);
+  if (start.getTime() === end.getTime()) return formatRangeDate(start, true);
   const startYear = start.getUTCFullYear();
   const endYear = end.getUTCFullYear();
-  if (startYear === endYear) return `${MONTH_DAY.format(start)} - ${MONTH_DAY.format(end)}, ${endYear}`;
-  return `${MONTH_DAY.format(start)}, ${startYear} - ${MONTH_DAY.format(end)}, ${endYear}`;
+  if (startYear === endYear) return `${formatRangeDate(start)} - ${formatRangeDate(end, true)}`;
+  return `${formatRangeDate(start, true)} - ${formatRangeDate(end, true)}`;
 }
 
-export function formatTravelDateRange(startValue, endValue, fallback = "Adicionar datas da viagem") {
+export function formatTravelDateRange(startValue, endValue, fallback = activeLocale === "pt-BR" ? "Adicionar datas da viagem" : "Add trip dates") {
+  return formatTravelDateRangeForLocale(startValue, endValue, activeLocale, fallback);
+}
+
+export function formatTravelDateRangeForLocale(startValue, endValue, locale, fallback) {
+  const targetLocale = SUPPORTED_LOCALES.has(locale) ? locale : "en-GB";
+  const resolvedFallback = fallback ?? (targetLocale === "pt-BR" ? "Adicionar datas da viagem" : "Add trip dates");
   const start = parseIsoDate(startValue);
   const end = parseIsoDate(endValue);
-  if (!start && !end) return fallback;
-  if (!start || !end) return `${formatPortugueseDate(start ?? end)} de ${(start ?? end).getUTCFullYear()}`;
-  if (start.getTime() === end.getTime()) return `${formatPortugueseDate(start)} de ${start.getUTCFullYear()}`;
-  const startYear = start.getUTCFullYear();
-  const endYear = end.getUTCFullYear();
-  if (startYear === endYear) return `${formatPortugueseDate(start)} – ${formatPortugueseDate(end)} de ${endYear}`;
-  return `${formatPortugueseDate(start)} de ${startYear} – ${formatPortugueseDate(end)} de ${endYear}`;
+  if (!start && !end) return resolvedFallback;
+  if (targetLocale === "en-GB") return formatEnglishTravelDateRange(start, end);
+  return formatPortugueseTravelDateRange(start, end);
 }
 
-function formatPortugueseDate(date) {
+export function formatDisplayDate(value, format = activeDateDisplayFormat, locale = activeLocale, fallback) {
+  const date = parseIsoDate(value);
+  const targetLocale = SUPPORTED_LOCALES.has(locale) ? locale : "en-GB";
+  if (!date) return fallback ?? (targetLocale === "pt-BR" ? "Adicionar data" : "Add date");
+  const normalized = normalizeDateDisplayFormat(format);
+  if (normalized === "written") {
+    return new Intl.DateTimeFormat(targetLocale, {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+      timeZone: "UTC",
+    }).format(date);
+  }
+  return formatNumericDate(date, normalized, true);
+}
+
+export function formatDisplayDateRange(startValue, endValue, format = activeDateDisplayFormat, locale = activeLocale, fallback) {
+  return formatDisplayDateRangeForLocale(startValue, endValue, locale, format, fallback);
+}
+
+export function formatDisplayDateRangeForLocale(startValue, endValue, locale, format = activeDateDisplayFormat, fallback) {
+  const targetLocale = SUPPORTED_LOCALES.has(locale) ? locale : "en-GB";
+  const resolvedFallback = fallback ?? (targetLocale === "pt-BR" ? "Adicionar datas da viagem" : "Add trip dates");
+  const start = parseIsoDate(startValue);
+  const end = parseIsoDate(endValue);
+  if (!start) return end
+    ? formatDisplayDate(endValue, format, targetLocale, resolvedFallback)
+    : resolvedFallback;
+  if (!end) return formatDisplayDate(startValue, format, targetLocale, resolvedFallback);
+  return formatCompleteDisplayDateRange(start, end, format, targetLocale);
+}
+
+function formatCompleteDisplayDateRange(start, end, format, locale) {
+  const normalized = normalizeDateDisplayFormat(format);
+  if (normalized === "written") return formatWrittenDisplayDateRange(start, end, locale);
+  if (start.getTime() === end.getTime()) return formatNumericDate(start, normalized, true);
+  if (start.getUTCFullYear() !== end.getUTCFullYear()) {
+    return `${formatNumericDate(start, normalized, true)} - ${formatNumericDate(end, normalized, true)}`;
+  }
+  return `${formatNumericDate(start, normalized)} - ${formatNumericDate(end, normalized)} ${end.getUTCFullYear()}`;
+}
+
+export function formatClockTime(value, format = activeTimeDisplayFormat) {
+  const time = String(value ?? "").trim();
+  if (isUnconfirmedTime(time)) return "-";
+  const match = /^(\d{2}):(\d{2})$/.exec(time);
+  if (!match) return value;
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  if (hours > 23 || minutes > 59) return value;
+  if (normalizeTimeDisplayFormat(format) === "24-hour") {
+    return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+  }
+  const suffix = hours < 12 ? "AM" : "PM";
+  const displayHours = hours % 12 || 12;
+  return `${displayHours}:${String(minutes).padStart(2, "0")} ${suffix}`;
+}
+
+function isUnconfirmedTime(value) {
+  return !value || UNCONFIRMED_TIMES.has(value.toLocaleLowerCase());
+}
+
+function formatNumericDate(date, format, includeYear = false) {
+  const day = String(date.getUTCDate()).padStart(2, "0");
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const body = format === "month-first" ? `${month}/${day}` : `${day}/${month}`;
+  return includeYear ? `${body}/${date.getUTCFullYear()}` : body;
+}
+
+function formatWrittenDisplayDateRange(start, end, locale) {
+  if (start.getTime() === end.getTime()) return formatWrittenDisplayDate(start, locale, true);
+  if (start.getUTCFullYear() !== end.getUTCFullYear()) {
+    return `${formatWrittenDisplayDate(start, locale, true)} - ${formatWrittenDisplayDate(end, locale, true)}`;
+  }
+  return `${formatWrittenDisplayDate(start, locale)} - ${formatWrittenDisplayDate(end, locale)} ${end.getUTCFullYear()}`;
+}
+
+function formatWrittenDisplayDate(date, locale, includeYear = false) {
+  const options = { day: "numeric", month: "short", timeZone: "UTC" };
+  if (includeYear) options.year = "numeric";
+  return new Intl.DateTimeFormat(locale, options).format(date);
+}
+
+function formatPortugueseTravelDateRange(start, end) {
+  if (!start || !end) return formatPortugueseTravelDate(start ?? end, true);
+  if (start.getTime() === end.getTime()) return formatPortugueseTravelDate(start, true);
+  const startYear = start.getUTCFullYear();
+  const endYear = end.getUTCFullYear();
+  if (startYear === endYear) return `${formatPortugueseTravelDate(start)} a ${formatPortugueseTravelDate(end)} de ${endYear}`;
+  return `${formatPortugueseTravelDate(start, true)} a ${formatPortugueseTravelDate(end, true)}`;
+}
+
+function formatEnglishTravelDateRange(start, end) {
+  if (!start || !end) return formatEnglishRangeDate(start ?? end, true);
+  if (start.getTime() === end.getTime()) return formatEnglishRangeDate(start, true);
+  const startYear = start.getUTCFullYear();
+  const endYear = end.getUTCFullYear();
+  if (startYear === endYear) return `${formatEnglishRangeDate(start)} to ${formatEnglishRangeDate(end)}, ${endYear}`;
+  return `${formatEnglishRangeDate(start)}, ${startYear} to ${formatEnglishRangeDate(end)}, ${endYear}`;
+}
+
+function formatEnglishRangeDate(date, includeYear = false) {
+  const month = new Intl.DateTimeFormat("en-GB", { month: "short", timeZone: "UTC" }).format(date);
   const day = date.getUTCDate();
-  return `${day === 1 ? "1º" : day} de ${MONTH.format(date)}`;
+  return `${day}${ordinalSuffix(day)} of ${month}${includeYear ? `, ${date.getUTCFullYear()}` : ""}`;
+}
+
+function formatEnglishTravelDate(date, includeYear = false) {
+  const month = new Intl.DateTimeFormat("en-GB", { month: "short", timeZone: "UTC" }).format(date);
+  const day = date.getUTCDate();
+  return `${month} ${day}${ordinalSuffix(day)}${includeYear ? `, ${date.getUTCFullYear()}` : ""}`;
+}
+
+function ordinalSuffix(day) {
+  const remainder = day % 100;
+  return remainder >= 11 && remainder <= 13 ? "th" : ({ 1: "st", 2: "nd", 3: "rd" }[day % 10] ?? "th");
+}
+
+function formatPortugueseTravelDate(date, includeYear = false) {
+  const day = date.getUTCDate() === 1 ? "1º" : date.getUTCDate();
+  const month = new Intl.DateTimeFormat("pt-BR", { month: "short", timeZone: "UTC" }).format(date);
+  return `${day} de ${month}${includeYear ? ` de ${date.getUTCFullYear()}` : ""}`;
 }
 
 export function formatAgendaDate(value) {
   const date = parseIsoDate(value);
-  if (!date) return { month: "Data", day: "—", weekday: "Não selecionada" };
+  if (!date) return activeLocale === "pt-BR"
+    ? { month: "Data", day: "—", weekday: "Não selecionada" }
+    : { month: "Date", day: "—", weekday: "Not selected" };
   return {
-    month: MONTH.format(date),
+    month: new Intl.DateTimeFormat(activeLocale, { month: "short", timeZone: "UTC" }).format(date),
     day: String(date.getUTCDate()).padStart(2, "0"),
-    weekday: WEEKDAY.format(date),
+    weekday: new Intl.DateTimeFormat(activeLocale, { weekday: "long", timeZone: "UTC" }).format(date),
   };
+}
+
+export function formatAgendaHeadingDate(value) {
+  const date = parseIsoDate(value);
+  if (!date) return activeLocale === "pt-BR"
+    ? { weekday: "Data", date: "Não selecionada" }
+    : { weekday: "Date", date: "Not selected" };
+  const weekday = new Intl.DateTimeFormat(activeLocale, { weekday: "long", timeZone: "UTC" }).format(date);
+  if (activeLocale === "en-GB") {
+    return { weekday, date: formatEnglishRangeDate(date) };
+  }
+  const day = date.getUTCDate() === 1 ? "1º" : date.getUTCDate();
+  const month = new Intl.DateTimeFormat(activeLocale, { month: "short", timeZone: "UTC" }).format(date).replace(/\.$/, "");
+  return { weekday, date: `${day} de ${month}` };
+}
+
+function formatRangeDate(date, includeYear = false) {
+  const options = { day: "numeric", month: "short", timeZone: "UTC" };
+  if (includeYear) options.year = "numeric";
+  return new Intl.DateTimeFormat(activeLocale, options).format(date);
 }
 
 export function inclusiveDayCount(startValue, endValue) {
@@ -120,6 +322,8 @@ function legacyDateMatch(value) {
   if (typeof value !== "string") return null;
   const english = MONTH_DATE.exec(value);
   if (english) return { month: monthIndex(english[1]), day: Number(english[2]), year: numericYear(english[3]), index: english.index };
+  const british = BRITISH_DATE.exec(value);
+  if (british) return { month: monthIndex(british[2]), day: Number(british[1]), year: numericYear(british[3]), index: british.index };
   const portuguese = PORTUGUESE_DATE.exec(value);
   if (!portuguese) return null;
   return { month: monthIndex(portuguese[2]), day: Number(portuguese[1]), year: numericYear(portuguese[3]), index: portuguese.index };
@@ -130,10 +334,13 @@ function legacyDateMatches(value) {
   const english = [...value.matchAll(MONTH_DATE_GLOBAL)].map((match) => ({
     month: monthIndex(match[1]), day: Number(match[2]), year: numericYear(match[3]), index: match.index,
   }));
+  const british = [...value.matchAll(BRITISH_DATE_GLOBAL)].map((match) => ({
+    month: monthIndex(match[2]), day: Number(match[1]), year: numericYear(match[3]), index: match.index,
+  }));
   const portuguese = [...value.matchAll(PORTUGUESE_DATE_GLOBAL)].map((match) => ({
     month: monthIndex(match[2]), day: Number(match[1]), year: numericYear(match[3]), index: match.index,
   }));
-  return [...english, ...portuguese].sort((left, right) => left.index - right.index);
+  return [...english, ...british, ...portuguese].sort((left, right) => left.index - right.index);
 }
 
 function inferYearForMonth(month, range) {

@@ -1,8 +1,14 @@
-import { escapeHtml, initials, safeUrl } from "../utils/html.js";
+import { escapeHtml, initials, safeAssetUrl, safeUrl } from "../utils/html.js";
+import { formatDurationUnits } from "../../shared/duration-utils.mjs";
 import { renderActionIcon, renderIcon } from "../ui/icon-registry.js";
 
 const PRIORITIES = ["high", "medium", "low"];
-const PRIORITY_LABELS = Object.freeze({ high: "Alta", medium: "Média", low: "Baixa" });
+const PRIORITY_LABELS = Object.freeze({ high: "High", medium: "Medium", low: "Low" });
+const TRAVEL_ROUTE_MODES = Object.freeze([
+  { key: "driving", label: "Driving", icon: "car" },
+  { key: "cycling", label: "Cycling", icon: "bike" },
+  { key: "walking", label: "Walking", icon: "walking" },
+]);
 
 export function editField(label, field, value, options = {}) {
   const tag = options.multiline ? "textarea" : "input";
@@ -21,46 +27,75 @@ export function renderNote(block, editing) {
   return `<article class="content-block note-block"><h3>${escapeHtml(block.data.title)}</h3><p>${escapeHtml(block.data.text)}</p></article>`;
 }
 
-export function renderPlace(place) {
+export function renderPlace(place, options = {}) {
   const image = renderEntryImage(place);
-  const comment = place.comment ? `<small>${escapeHtml(place.comment)}</small>` : "";
-  const routes = renderPlaceRouteModes(place);
-  return `<div class="place-row priority-${escapeHtml(place.priority)}${routes ? " has-routes" : ""}"><span class="place-media"><span>${escapeHtml(initials(place.name))}</span>${image}</span><span class="place-copy"><strong>${escapeHtml(place.name)}</strong>${comment}${renderPriorityBadge(place.priority)}</span>${routes}${renderEntryLinks(place, place.name)}</div>`;
+  const hasComment = Boolean(String(place.comment ?? "").trim());
+  const comment = hasComment ? `<small class="place-comment">${escapeHtml(place.comment)}</small>` : "";
+  const routes = options.showRoutes === false ? "" : renderPlaceRouteToggle(place);
+  const links = renderEntryLinks(place, place.name, options.extraLink ?? "", {
+    showMissing: options.showMissingLinks === true,
+  });
+  const priority = normalizePriority(place.priority);
+  const heading = `<span class="agenda-place-heading"><span class="place-media"><span>${escapeHtml(initials(place.name))}</span>${image}</span><span class="agenda-place-heading-copy"><span class="place-copy"><strong>${escapeHtml(place.name)}</strong></span>${renderPriorityBadge(priority)}</span></span>`;
+  const footer = routes || links ? `<div class="agenda-place-footer">${links}${routes}</div>` : "";
+  return `<div class="place-row priority-${priority}${hasComment ? " has-comment" : ""}${routes ? " has-routes" : ""}" data-inline-image-entry="place" data-inline-image-id="${escapeHtml(place.id)}"><div class="agenda-place-main">${heading}${comment}</div>${footer}</div>`;
 }
 
-export function renderPlaceEditor(place) {
-  const routeEditor = renderPlaceRouteEditor(place);
-  return `<div class="place-editor" data-place-id="${escapeHtml(place.id)}"><div class="place-editor-fields"><input value="${escapeHtml(place.name)}" data-place-field="name" aria-label="Nome do lugar" placeholder="Nome do lugar"><input type="url" value="${escapeHtml(place.mapUrl)}" data-place-field="mapUrl" placeholder="URL do Google Maps" aria-label="URL do Google Maps"><input type="url" value="${escapeHtml(place.websiteUrl)}" data-place-field="websiteUrl" placeholder="URL do site" aria-label="URL do site"><textarea data-place-field="comment" placeholder="Comentário" aria-label="Comentário sobre o lugar">${escapeHtml(place.comment)}</textarea>${routeEditor}</div>${renderPriorityControl("place", place.priority)}<div class="nested-toolbar" aria-label="Controles do lugar">${placeActionButton("cover", "Imagem de capa", "image")}${placeActionButton("up", "Mover para cima", "arrow-up")}${placeActionButton("down", "Mover para baixo", "arrow-down")}${placeActionButton("delete", "Excluir lugar", "trash")}</div></div>`;
+export function renderPlaceEditor(place, options = {}) {
+  const routeEditor = renderDistanceEditor(place, "place");
+  const category = options.showCategory ? renderPlaceCategory(place.category) : "";
+  return `<div class="place-editor" data-place-id="${escapeHtml(place.id)}"><div class="place-editor-fields">${category}<input value="${escapeHtml(place.name)}" data-place-field="name" aria-label="Nome do lugar" placeholder="Nome do lugar"><input type="url" value="${escapeHtml(place.mapUrl)}" data-place-field="mapUrl" placeholder="URL do Google Maps" aria-label="URL do Google Maps"><input type="url" value="${escapeHtml(place.websiteUrl)}" data-place-field="websiteUrl" placeholder="URL do site" aria-label="URL do site"><textarea data-place-field="comment" placeholder="Descrição" aria-label="Descrição">${escapeHtml(place.comment)}</textarea>${routeEditor}</div><div class="editor-entry-actions">${renderPriorityControl("place", place.priority)}<button class="editor-remove-button" type="button" data-place-action="delete">Remove Place</button></div><div class="nested-toolbar" aria-label="Controles do lugar">${placeActionButton("cover", "Imagem de capa", "image")}${placeActionButton("up", "Mover para cima", "arrow-up")}${placeActionButton("down", "Mover para baixo", "arrow-down")}${placeActionButton("delete", "Excluir lugar", "trash")}</div></div>`;
 }
 
-function renderPlaceRouteModes(place) {
-  const modes = [
-    ["driving", "De carro", "car"],
-    ["walking", "A pé", "walking"],
-    ["cycling", "De bicicleta", "bike"],
-  ].map(([mode, label, icon]) => renderPlaceRouteMode(place, mode, label, icon)).join("");
-  return modes ? `<span class="place-route-modes">${modes}</span>` : "";
+function renderPlaceCategory(category) {
+  const value = category === "landmark" ? "landmark" : "restaurant";
+  return `<label class="place-category-field">Category<select data-place-field="category" aria-label="Place category"><option value="restaurant"${value === "restaurant" ? " selected" : ""}>Restaurant</option><option value="landmark"${value === "landmark" ? " selected" : ""}>Landmark</option></select></label>`;
 }
 
-function renderPlaceRouteMode(place, mode, label, icon) {
-  const distance = String(place[`${mode}Distance`] ?? "").trim();
-  const time = String(place[`${mode}Time`] ?? "").trim();
-  if (!distance && !time) return "";
-  const value = [distance, time].filter(Boolean).join(" · ");
-  return `<span class="place-route-mode"><span class="place-route-icon">${renderIcon(icon)}</span><span><small>${label}</small><strong>${escapeHtml(value)}</strong></span></span>`;
+function placeRouteValue(place, mode) {
+  return meaningfulRouteValue(formatDurationUnits(place[`${mode}Time`]));
 }
 
-function renderPlaceRouteEditor(place) {
-  const modes = [
-    ["driving", "De carro"],
-    ["walking", "A pé"],
-    ["cycling", "De bicicleta"],
-  ].map(([mode, label]) => {
-    const distance = escapeHtml(place[`${mode}Distance`] ?? "");
-    const time = escapeHtml(place[`${mode}Time`] ?? "");
-    return `<fieldset class="place-route-editor-mode"><legend>${label}</legend><input value="${distance}" data-place-field="${mode}Distance" placeholder="Distância" aria-label="${label} Distance"><input value="${time}" data-place-field="${mode}Time" placeholder="Tempo" aria-label="${label} Time"></fieldset>`;
+function renderPlaceRouteToggle(place) {
+  return renderTravelModeToggle(place, placeRouteValue, "place-route-toggle");
+}
+
+export function renderMealRouteToggle(option) {
+  return renderTravelModeToggle(option, (entry, mode) => meaningfulRouteValue(entry[`${mode}Time`]));
+}
+
+function renderTravelModeToggle(entry, valueForMode, extraClass = "") {
+  const availableModes = TRAVEL_ROUTE_MODES
+    .map((mode) => ({ ...mode, value: valueForMode(entry, mode.key) }))
+    .filter(({ value }) => value);
+  if (!availableModes.length) return "";
+  const modes = availableModes.map(({ key, label, icon, value }, index) => {
+    const hidden = index === 0 ? "" : " hidden";
+    return `<span class="meal-route-option" data-meal-route-option data-route-mode="${key}" data-route-label="${label}"${hidden}><span class="meal-route-glyph" aria-hidden="true">${renderIcon(icon)}</span><span class="meal-route-value">${escapeHtml(value)}</span></span>`;
   }).join("");
-  return `<fieldset class="place-route-editor"><legend>Distâncias a partir da parada anterior ou da hospedagem</legend>${modes}</fieldset>`;
+  const firstMode = availableModes[0];
+  const className = `meal-route-toggle${extraClass ? ` ${extraClass}` : ""}`;
+  if (availableModes.length === 1) {
+    return `<span class="${className} is-static" data-mode="${firstMode.key}" title="${firstMode.label}">${modes}</span>`;
+  }
+  return `<button class="${className}" type="button" data-meal-route-toggle data-mode="${firstMode.key}" aria-label="Change travel mode" title="Change travel mode">${modes}</button>`;
+}
+
+function meaningfulRouteValue(value) {
+  const text = String(value ?? "").trim();
+  if (!text) return "";
+  const numbers = text.match(/-?\d+(?:[.,]\d+)?/g);
+  if (numbers?.length && numbers.every((number) => Number(number.replace(",", ".")) === 0)) return "";
+  return text;
+}
+
+export function renderDistanceEditor(entry, kind) {
+  const modes = TRAVEL_ROUTE_MODES.map(({ key: mode, label }) => {
+    const distance = escapeHtml(entry[`${mode}Distance`] ?? "");
+    const time = escapeHtml(formatDurationUnits(entry[`${mode}Time`]));
+    return `<fieldset class="place-route-editor-mode"><legend>${label}</legend><input value="${distance}" data-${kind}-field="${mode}Distance" placeholder="Distance" aria-label="${label} distance"><input value="${time}" data-${kind}-field="${mode}Time" placeholder="Time" aria-label="${label} time"></fieldset>`;
+  }).join("");
+  return `<fieldset class="place-route-editor"><legend>Distance from Main Accommodation</legend>${modes}</fieldset>`;
 }
 
 export function renderEntryImage(entry) {
@@ -69,34 +104,45 @@ export function renderEntryImage(entry) {
   return `<img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(entry.cover?.alt ?? "")}" referrerpolicy="no-referrer" loading="lazy">`;
 }
 
-export function renderEntryLinks(entry, name) {
+export function renderEntryLinks(entry, name, extra = "", options = {}) {
   const mapUrl = safeUrl(entry.mapUrl);
   const websiteUrl = safeUrl(entry.websiteUrl);
-  const map = entryLink(mapUrl, `Abrir ${name} no Google Maps`, "map-pin", "map-link");
-  const website = entryLink(websiteUrl, `Abrir site de ${name}`, "external-link", "website-link");
-  return map || website ? `<span class="entry-links">${map}${website}</span>` : "";
+  const editable = options.editable !== false;
+  const map = entryLink({ url: mapUrl, label: `Abrir ${name} no Google Maps`, icon: "map-pin", className: "map-link", field: "mapUrl", showMissing: options.showMissing, editable });
+  const website = entryLink({ url: websiteUrl, label: `Abrir site de ${name}`, icon: "external-link", className: "website-link", field: "websiteUrl", showMissing: options.showMissing, editable });
+  return map || website || extra ? `<span class="entry-links">${map}${website}${extra}</span>` : "";
 }
 
 export function renderPriorityBadge(priority = "medium") {
-  const value = PRIORITIES.includes(priority) ? priority : "medium";
-  return `<span class="priority-badge priority-${value}">${priorityLabel(value)}</span>`;
+  const value = normalizePriority(priority);
+  return `<span class="place-priority-pill priority-${value}" aria-label="${priorityLabel(value)} priority">${priorityLabel(value)}</span>`;
+}
+
+function normalizePriority(priority) {
+  return PRIORITIES.includes(priority) ? priority : "medium";
 }
 
 export function renderPriorityControl(kind, priority = "medium") {
-  const buttons = PRIORITIES.map((value) => {
-    const selected = value === priority;
-    return `<button type="button" data-${kind}-action="priority" data-priority="${value}" aria-pressed="${selected}" class="priority-${value}${selected ? " is-selected" : ""}">${priorityLabel(value)}</button>`;
+  const normalized = normalizePriority(priority);
+  const options = PRIORITIES.map((value) => {
+    const selected = value === normalized;
+    return `<button type="button" data-${kind}-action="priority" data-priority="${value}" aria-pressed="${selected}" class="priority-option priority-${value}${selected ? " is-selected" : ""}">${priorityLabel(value)}</button>`;
   }).join("");
-  return `<div class="priority-control" role="group" aria-label="Prioridade">${buttons}</div>`;
+  return `<div class="priority-field priority-${normalized}"><span>Priority</span><details class="priority-picker"><summary aria-label="Priority">${priorityLabel(normalized)}</summary><div class="priority-options" role="group" aria-label="Priority">${options}</div></details></div>`;
 }
 
 function placeActionButton(action, label, icon) {
   return `<button class="toolbar-icon" type="button" data-place-action="${action}" data-tooltip="${label}" aria-label="${label}">${renderActionIcon(icon)}</button>`;
 }
 
-function entryLink(url, label, icon, className) {
-  if (!url) return "";
-  return `<a class="${className}" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}">${renderActionIcon(icon)}</a>`;
+function entryLink({ url, label, icon, className, field, showMissing = false, editable = true }) {
+  const editorAttributes = editable ? ` data-inline-link-field="${field}" data-inline-ignore` : "";
+  if (!url) {
+    if (!showMissing) return "";
+    const unavailableLabel = `${label} — link não adicionado`;
+    return `<span class="${className} is-unavailable" role="img" aria-label="${escapeHtml(unavailableLabel)}" title="${escapeHtml(unavailableLabel)}"${editorAttributes}>${renderActionIcon(icon)}</span>`;
+  }
+  return `<a class="${className}" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}"${editorAttributes}>${renderActionIcon(icon)}</a>`;
 }
 
 function priorityLabel(priority) {
@@ -114,7 +160,7 @@ export function renderCover(cover) {
   return `<div class="block-cover position-${position}"><img src="${escapeHtml(url)}" alt="${escapeHtml(cover.alt)}" referrerpolicy="no-referrer" loading="lazy"></div>`;
 }
 
-function mediaUrl(media) {
+export function mediaUrl(media) {
   if (media?.mediaId) return `/api/media/${encodeURIComponent(media.mediaId)}`;
-  return media?.url ? safeUrl(media.url) : "";
+  return media?.url ? safeAssetUrl(media.url) || safeUrl(media.url) : "";
 }

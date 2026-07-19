@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-labelledby="title description">
+  <title id="title">Telch Turismo</title>
+  <desc id="description">A decorative Telch Turismo provider tile inspired by roads and mountain travel.</desc>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#164b63"/>
+      <stop offset="1" stop-color="#1b7a78"/>
+    </linearGradient>
+    <linearGradient id="land" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#5fb98c"/>
+      <stop offset="1" stop-color="#23745e"/>
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="54" fill="url(#sky)"/>
+  <circle cx="198" cy="55" r="28" fill="#ffd277" opacity=".96"/>
+  <path d="M-12 164 57 91l40 41 35-27 61 61 39-34 36 34v110H-12Z" fill="url(#land)"/>
+  <path d="M106 270c3-45 12-78 30-101 17-22 41-37 70-46" fill="none" stroke="#f8f4e7" stroke-linecap="round" stroke-width="17"/>
+  <path d="M106 270c3-45 12-78 30-101 17-22 41-37 70-46" fill="none" stroke="#f2b84b" stroke-dasharray="8 11" stroke-linecap="round" stroke-width="3"/>
+  <rect x="26" y="31" width="132" height="64" rx="20" fill="#102f42" fill-opacity=".82"/>
+  <text x="92" y="65" fill="#fff" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="700" letter-spacing="1" text-anchor="middle">TELCH</text>
+  <text x="92" y="84" fill="#fff" fill-opacity=".78" font-family="Arial, Helvetica, sans-serif" font-size="10" font-weight="700" letter-spacing="3" text-anchor="middle">TURISMO</text>
+</svg>

@@ -44,11 +44,13 @@ mkdir -p -- "$UPLOAD_DIR" "$ATTACHMENT_DIR"
 [[ -w "$DATA_DIR" ]] || fail "$DATA_DIR is not writable by the current user."
 
 export PORT="${PORT:-4177}"
+export GRAMADO_HOST="${GRAMADO_HOST:-0.0.0.0}"
 export GRAMADO_STRICT_PORT=1
 
-echo "[Tripboard] Starting on http://localhost:$PORT"
+echo "[Tripboard] Listening on $GRAMADO_HOST:$PORT"
+echo "[Tripboard] Open http://127.0.0.1:$PORT on this Mac."
 echo "[Tripboard] Press Control-C to stop."
 cd "$SCRIPT_DIR"
 exec "$NODE_BIN" "scripts/start-server.mjs"
 
-# TRIPBOARD_MACOS_LAUNCHER_END
+# TRIPBOARD_MACOS_LAUNCHER_END

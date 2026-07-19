@@ -11,7 +11,7 @@ const SECRET = "integration-secret-that-is-at-least-32-bytes";
 const PASSWORD = "161221";
 const HASH = await createScryptPasswordHash(PASSWORD, { salt: Buffer.alloc(16, 4) });
 
-test("serves the app and completes authenticated document update over HTTP", async (context) => {
+test("serves the app and completes a password-free document update over HTTP", async (context) => {
   const database = new DatabaseSync(":memory:");
   const router = createGramadoRouter({
     database,
@@ -30,13 +30,14 @@ test("serves the app and completes authenticated document update over HTTP", asy
   const anonymousResponse = await fetch(`${baseUrl}/api/session`);
   const anonymous = await anonymousResponse.json();
   const cookie = cookieValue(anonymousResponse);
-  const loginResponse = await apiFetch(`${baseUrl}/api/login`, cookie, anonymous.csrfToken, { password: PASSWORD });
-  assert.equal(loginResponse.response.status, 200);
-  assert.match(loginResponse.response.headers.get("set-cookie"), /HttpOnly.*SameSite=Strict/i);
+  const editSession = await apiFetch(`${baseUrl}/api/session/edit`, cookie, anonymous.csrfToken);
+  assert.equal(editSession.response.status, 200);
+  assert.equal(editSession.body.authenticated, true);
+  assert.match(editSession.response.headers.get("set-cookie"), /HttpOnly.*SameSite=Strict/i);
 
   const changed = createDefaultDocument();
   changed.meta.destination = "Gramado Test";
-  const save = await apiFetch(`${baseUrl}/api/document`, loginResponse.cookie, loginResponse.body.csrfToken, {
+  const save = await apiFetch(`${baseUrl}/api/document`, editSession.cookie, editSession.body.csrfToken, {
     revision: 1,
     document: changed,
   }, "PUT");
@@ -48,7 +49,7 @@ async function apiFetch(url, cookie, csrfToken, body, method = "POST") {
   const response = await fetch(url, {
     method,
     headers: { Cookie: cookie, "Content-Type": "application/json", "X-CSRF-Token": csrfToken },
-    body: JSON.stringify(body),
+    body: body === undefined ? undefined : JSON.stringify(body),
   });
   return { response, body: await response.json(), cookie: cookieValue(response) || cookie };
 }

@@ -1,0 +1,301 @@
+/* Final page-wide containment guardrails. */
+
+html,
+body {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+.section-shell {
+  width: min(1160px,calc(100% - clamp(16px,4vw,48px)));
+  max-width: 100%;
+}
+
+:where(
+  .workspace-bar,
+  .workspace-actions,
+  .hero,
+  .hero > div,
+  .hero-stats,
+  .stat,
+  .stat-copy,
+  .content-section,
+  .section-heading,
+  .section-pill,
+  .section-pill > span,
+  .section-root,
+  .block-grid,
+  .editor-block,
+  .block-frame,
+  .content-block,
+  .block-topline,
+  .provider,
+  .provider > div,
+  .route-grid,
+  .route-timeline,
+  .route-endpoint,
+  .route-endpoint-copy,
+  .route-line,
+  .detail-strip,
+  .transport-details,
+  .transport-seats,
+  .stay-summary,
+  .stay-copy,
+  .stay-title-row,
+  .stay-title-copy,
+  .property-pills,
+  .property-pills > span,
+  .stay-dates,
+  .stay-date-card,
+  .stay-date-details,
+  .amenity-card,
+  .amenity-card-header,
+  .amenity-card-header h3,
+  .amenity-groups,
+  .amenity-group,
+  .amenity-group-heading,
+  .amenity-group ul,
+  .amenity-group li,
+  .day-card,
+  .day-header,
+  .day-heading,
+  .day-heading-copy,
+  .day-body,
+  .place-list,
+  .place-row,
+  .agenda-place-main,
+  .agenda-place-heading,
+  .agenda-place-heading-copy,
+  .agenda-place-footer,
+  .place-copy,
+  .place-comment,
+  .meal-grid,
+  .meal-group,
+  .food-list,
+  .food-row,
+  .meal-card-main,
+  .meal-card-heading,
+  .food-card-copy,
+  .meal-card-description,
+  .meal-card-footer,
+  .meal-route-toggle,
+  .meal-route-option,
+  .saved-places,
+  .saved-place-groups,
+  .saved-place-group,
+  .saved-grid,
+  .entry-links,
+  .link-block,
+  .essential-list,
+  .distance-list,
+  .distance-landmark,
+  .distance-landmark-heading,
+  .distance-landmark-copy,
+  .distance-modes,
+  .distance-mode,
+  .attachment-section,
+  .attachment-row,
+  .attachment-open,
+  .toast,
+  .empty-state,
+  .edit-form
+) {
+  box-sizing: border-box;
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+:where(
+  .block-topline,
+  .provider,
+  .stay-title-row,
+  .stay-date-details,
+  .amenity-card-header,
+  .agenda-place-footer,
+  .meal-card-footer,
+  .entry-links,
+  .link-block,
+  .essential-list > div
+) {
+  flex-wrap: wrap;
+}
+
+:where(
+  .block-topline,
+  .provider,
+  .route-timeline,
+  .route-endpoint,
+  .detail-strip,
+  .stay-title-row,
+  .stay-dates,
+  .amenity-group-heading,
+  .agenda-place-heading,
+  .agenda-place-footer,
+  .meal-card-heading,
+  .meal-card-footer,
+  .distance-landmark-heading,
+  .distance-mode
+) > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+:where(
+  .brand-wordmark,
+  .hero .stat small,
+  .hero .stat strong,
+  .hero .travel-dates,
+  .section-pill > span,
+  .property-pills > span,
+  .stay-date-card small,
+  .stay-date-card strong,
+  .stay-date-card .stay-time,
+  .amenity-card-header h3,
+  .amenity-group-heading h4,
+  .amenity-group li > span:last-child,
+  .provider small,
+  .provider strong,
+  .route-endpoint-copy > *,
+  .route-duration,
+  .transport-details,
+  .transport-seats,
+  .day-heading-copy,
+  .day-heading-title,
+  .place-copy strong,
+  .place-copy small,
+  .place-comment,
+  .meal-group h4,
+  .food-card-copy strong,
+  .meal-card-description,
+  .meal-route-value,
+  .place-route-mode small,
+  .place-route-mode strong,
+  .distance-landmark-copy h4,
+  .distance-landmark-copy p,
+  .distance-mode strong,
+  .distance-time,
+  .saved-places h3,
+  .empty-state strong,
+  .empty-state span
+) {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.amenity-group li > span:last-child,
+.meal-route-value {
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.amenity-group {
+  --amenity-row-block-size: auto;
+}
+
+.amenity-group li {
+  min-height: calc(1lh + 18px);
+  height: auto;
+}
+
+.meal-route-toggle {
+  width: min(var(--meal-route-toggle-size,96px),100%);
+  min-width: 0;
+  max-width: 100%;
+  height: auto;
+  flex: 0 1 var(--meal-route-toggle-size,96px);
+}
+
+.route-duration {
+  min-width: 0 !important;
+}
+
+.toast {
+  width: min(420px,calc(100% - 24px));
+  right: 12px;
+}
+
+:where(img,video,canvas,iframe) {
+  max-width: 100%;
+}
+
+:where(input,textarea,select,button) {
+  max-width: 100%;
+}
+
+/* Keep the language control as two invariant hit targets. Localisation must
+ * never resize, wrap or visually replace either compact label. */
+.language-switch {
+  display: inline-grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  align-items: stretch;
+  isolation: isolate;
+  overflow: clip;
+}
+
+.language-switch .language-button {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  min-height: 0;
+  flex: none;
+  place-items: center;
+  padding: 0;
+  line-height: 1;
+  white-space: nowrap;
+  transform: none;
+}
+
+.language-switch .language-button:active {
+  transform: none;
+}
+
+.property-pills > span {
+  overflow-wrap: normal;
+  white-space: nowrap;
+}
+
+@container (max-width: 520px) {
+  .stay-dates,
+  .meal-grid,
+  .saved-grid,
+  .amenity-groups,
+  .distance-list {
+    grid-template-columns: minmax(0,1fr);
+  }
+
+  .detail-strip {
+    grid-template-columns: minmax(0,1fr);
+  }
+
+  .transport-seats {
+    justify-self: end;
+    justify-items: end;
+    text-align: right;
+  }
+}
+
+@media (max-width: 360px) {
+  .section-heading::after {
+    display: none;
+  }
+
+  .section-pill,
+  .section-pill > span,
+  .amenity-card-header h3,
+  .saved-places h3 {
+    width: 100%;
+  }
+
+  .section-pill > span,
+  .amenity-card-header h3,
+  .saved-places h3 {
+    justify-content: flex-start;
+    text-align: left;
+  }
+}

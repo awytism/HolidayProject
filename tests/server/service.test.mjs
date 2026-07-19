@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { DatabaseSync } from "node:sqlite";
 import test from "node:test";
 import { FAILURE_WINDOW_MS, LOCKOUT_MS, SESSION_TTL_MS, loadConfig } from "../../src/server/config.mjs";
-import { createScryptPasswordHash, hmacIp } from "../../src/server/security.mjs";
+import { createScryptPasswordHash } from "../../src/server/security.mjs";
 import { createGramadoService } from "../../src/server/service.mjs";
 import { GramadoStore, MAX_ANONYMOUS_SESSIONS } from "../../src/server/store.mjs";
 import { createDefaultDocument } from "../../src/shared/default-document.mjs";
@@ -36,7 +36,7 @@ function fixture() {
   };
 }
 
-test("serves the public document and enforces auth, CSRF, and revisions on updates", async (context) => {
+test("enables password-free editing while enforcing CSRF and revisions on updates", async (context) => {
   const testState = fixture();
   context.after(() => testState.database.close());
 
@@ -54,11 +54,9 @@ test("serves the public document and enforces auth, CSRF, and revisions on updat
     document: {},
   }), (error) => error.status === 401);
 
-  const authenticated = await testState.service.login({
+  const authenticated = testState.service.enableEditing({
     sessionToken: anonymous.token,
     csrfToken: anonymous.csrfToken,
-    password: PASSWORD,
-    ip: "198.51.100.20",
   });
   assert.equal(authenticated.authenticated, true);
   assert.notEqual(authenticated.token, anonymous.token);
@@ -92,7 +90,7 @@ test("serves the public document and enforces auth, CSRF, and revisions on updat
   assert.equal(testState.service.findSession(authenticated.token), null);
 });
 
-test("locks only the failing IP on exactly the third failure for exactly 30 minutes", async (context) => {
+test("does not impose a cooldown after repeated incorrect passwords", async (context) => {
   const testState = fixture();
   context.after(() => testState.database.close());
   const ip = "::ffff:192.0.2.10";
@@ -104,60 +102,19 @@ test("locks only the failing IP on exactly the third failure for exactly 30 minu
     ip,
   });
 
-  await assert.rejects(badLogin, (error) => error.status === 401);
-  await assert.rejects(badLogin, (error) => error.status === 401);
-  await assert.rejects(badLogin, (error) => {
-    assert.equal(error.status, 429);
-    assert.equal(error.details.retryAfterSeconds, LOCKOUT_MS / 1000);
-    return true;
-  });
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    await assert.rejects(badLogin, (error) => error.status === 401 && error.code === "invalid_credentials");
+  }
+  assert.equal(testState.database.prepare("SELECT COUNT(*) AS count FROM login_failures").get().count, 0);
+  assert.equal(testState.database.prepare("SELECT COUNT(*) AS count FROM login_lockouts").get().count, 0);
 
-  const stored = testState.database.prepare("SELECT ip_hash FROM login_lockouts").get();
-  assert.equal(stored.ip_hash, hmacIp("192.0.2.10", SECRET));
-  assert.equal(JSON.stringify(stored).includes("192.0.2.10"), false);
-
-  const otherIpSession = testState.service.getSessionState();
-  const otherIpLogin = await testState.service.login({
-    sessionToken: otherIpSession.token,
-    csrfToken: otherIpSession.csrfToken,
-    password: PASSWORD,
-    ip: "192.0.2.11",
-  });
-  assert.equal(otherIpLogin.authenticated, true);
-
-  await assert.rejects(() => testState.service.login({
-    sessionToken: anonymous.token,
-    csrfToken: anonymous.csrfToken,
-    password: PASSWORD,
-    ip,
-  }), (error) => error.status === 429);
-
-  testState.advance(LOCKOUT_MS);
-  const afterLockout = await testState.service.login({
+  const authenticated = await testState.service.login({
     sessionToken: anonymous.token,
     csrfToken: anonymous.csrfToken,
     password: PASSWORD,
     ip,
   });
-  assert.equal(afterLockout.authenticated, true);
-});
-
-test("counts failures only inside the rolling five-minute window", async (context) => {
-  const testState = fixture();
-  context.after(() => testState.database.close());
-  const anonymous = testState.service.getSessionState();
-  const fail = () => testState.service.login({
-    sessionToken: anonymous.token,
-    csrfToken: anonymous.csrfToken,
-    password: "wrong",
-    ip: "203.0.113.50",
-  });
-
-  await assert.rejects(fail, (error) => error.status === 401);
-  testState.advance(FAILURE_WINDOW_MS);
-  await assert.rejects(fail, (error) => error.status === 401);
-  await assert.rejects(fail, (error) => error.status === 401);
-  await assert.rejects(fail, (error) => error.status === 429);
+  assert.equal(authenticated.authenticated, true);
 });
 
 test("bounds anonymous sessions without evicting authenticated sessions", (context) => {

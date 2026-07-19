@@ -248,8 +248,20 @@ test("keeps attachment metadata and bytes authenticated while supporting safe pr
   assert.deepEqual((await list.json()).attachments.map((attachment) => attachment.name), ["booking.pdf"]);
 
   const contentPath = `/api/attachments/${created.id}/content`;
-  assert.equal((await fetch(`${fixture.baseUrl}${contentPath}`)).status, 401);
-  const download = await fetch(`${fixture.baseUrl}${contentPath}`, { headers: { Cookie: authenticated.cookie } });
+  const directAnonymousDownload = await fetch(`${fixture.baseUrl}${contentPath}`);
+  assert.equal(directAnonymousDownload.status, 403);
+  assert.equal((await directAnonymousDownload.json()).error.code, "attachment_password_required");
+  const unprotectedDownload = await fetch(`${fixture.baseUrl}${contentPath}`, { headers: { Cookie: authenticated.cookie } });
+  assert.equal(unprotectedDownload.status, 403);
+  assert.equal((await unprotectedDownload.json()).error.code, "attachment_password_required");
+  const incorrectPassword = await jsonRequest(fixture.baseUrl, `/api/attachments/${created.id}/download`, {
+    method: "POST", session: authenticated, body: { password: "wrong" },
+  });
+  assert.equal(incorrectPassword.status, 403);
+  assert.equal((await incorrectPassword.json()).error.code, "invalid_attachment_password");
+  const download = await jsonRequest(fixture.baseUrl, `/api/attachments/${created.id}/download`, {
+    method: "POST", session: authenticated, body: { password: "16/12/21" },
+  });
   assert.equal(download.status, 200);
   assert.match(download.headers.get("content-disposition"), /^attachment;/);
   assert.equal(download.headers.get("cache-control"), "private, no-store");

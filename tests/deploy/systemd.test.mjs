@@ -49,6 +49,8 @@ test("macOS launcher validates the platform and native dependencies", async () =
   assert.match(launcher, /GRAMADO_STRICT_PORT=1/);
   assert.match(launcher, /scripts\/start-server\.mjs/);
   assert.match(launcher, /TRIPBOARD_MACOS_LAUNCHER_END/);
+  assert.doesNotMatch(launcher, /\r/);
+  assert.match(launcher, /# TRIPBOARD_MACOS_LAUNCHER_END\n$/);
 });
 
 test("systemd template runs hardened as a non-root application user", async () => {

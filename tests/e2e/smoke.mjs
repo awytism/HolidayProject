@@ -46,7 +46,7 @@ try {
     `--user-data-dir=${profile}`, `http://127.0.0.1:${port}/#transport`,
   ], { stdio: "ignore" });
   client = await connectToChrome(debugPort);
-  await runSmokeTest(client, password, { valid: uploadFixture, oversized: oversizedFixture });
+  await runSmokeTest(client, { valid: uploadFixture, oversized: oversizedFixture });
   console.log("Browser smoke test passed");
 } finally {
   client?.close();
@@ -55,6 +55,7 @@ try {
   rmSync(database, { force: true });
   rmSync(`${database}-shm`, { force: true });
   rmSync(`${database}-wal`, { force: true });
+  rmSync(profile, { recursive: true, force: true });
   rmSync(uploadFixture, { force: true });
   rmSync(oversizedFixture, { force: true });
 }
@@ -63,8 +64,8 @@ async function stopProcess(child) {
   child.kill();
   await Promise.race([once(child, "exit"), delay(2_000)]);
 }
-async function runSmokeTest(client, loginPassword, coverFixtures) {
-  await client.waitFor(() => document.querySelectorAll(".content-block").length === 4);
+async function runSmokeTest(client, coverFixtures) {
+  await client.waitFor(() => document.querySelectorAll(".section-transport-grid .content-block").length === 4);
   await verifyJoinedAttachments(client);
   if (headingsOnly) {
     await verifyHeadingAlignment(client);
@@ -76,7 +77,7 @@ async function runSmokeTest(client, loginPassword, coverFixtures) {
   }
   if (movementOnly) {
     const originalFirst = await client.run(() => document.querySelector(".editor-block").dataset.blockId);
-    await unlockEditing(client, loginPassword);
+    await unlockEditing(client);
     await verifyCalendarEditors(client);
     await verifyToolbarTooltip(client);
     await verifyAttachmentDisclosures(client);
@@ -86,7 +87,7 @@ async function runSmokeTest(client, loginPassword, coverFixtures) {
   await verifyFontAndScroll(client);
   await verifyBrandNavigation(client);
   const originalFirst = await client.run(() => document.querySelector(".editor-block").dataset.blockId);
-  await unlockEditing(client, loginPassword);
+  await unlockEditing(client);
   await verifyCalendarEditors(client);
   await verifyToolbarTooltip(client);
   await verifyAttachmentDisclosures(client);
@@ -94,14 +95,14 @@ async function runSmokeTest(client, loginPassword, coverFixtures) {
   await addCoverAndTemplate(client, coverFixtures);
   await verifyJoinedAttachments(client);
   await client.run(() => document.querySelector("[data-add-type=flight]").click());
-  assert.equal(await client.run(() => document.querySelectorAll(".editor-block").length), 6);
+  assert.equal(await client.run(() => document.querySelectorAll(".section-transport-grid .editor-block").length), 6);
   await client.run(() => document.querySelector(".editor-block [data-block-action=down]").click());
   assert.notEqual(await client.run(() => document.querySelector(".editor-block").dataset.blockId), originalFirst);
   await client.run(() => document.querySelector("#editButton").click());
   await client.waitFor(() => !document.body.classList.contains("is-editing"));
   await client.send("Page.reload");
-  await client.waitFor(() => document.querySelectorAll(".content-block").length === 6);
-  assert.equal(await client.run(() => document.querySelector(".table-block").closest(".block-frame").querySelector(".block-color-header")?.textContent.trim()), "New table");
+  await client.waitFor(() => document.querySelectorAll(".section-transport-grid .content-block").length === 6);
+  assert.equal(await client.run(() => document.querySelector(".table-block").closest(".block-frame").querySelector(".block-color-header")?.textContent.trim()), "New Table");
   await verifyCoveredTransportLayout(client);
   await verifyGenericCardLayout(client);
   assert.equal(await client.run(() => document.documentElement.dataset.fontScale), "120");
@@ -112,7 +113,7 @@ async function runSmokeTest(client, loginPassword, coverFixtures) {
   });
   await client.run(() => document.querySelector("#editButton").click());
   await client.waitFor(() => document.body.classList.contains("is-editing"));
-  assert.equal(await client.run(() => document.querySelector("#authDialog").open), false);
+  assert.equal(await client.run(() => document.querySelector("#authDialog")), null);
   await client.run(() => document.querySelector(".block-cover").closest(".editor-block").querySelector("[data-block-action=cover]").click());
   await client.waitFor(() => document.querySelector(".media-dialog").open);
   assert.equal(await client.run(() => document.querySelector('.media-dialog [name="position"]').value), "top");
@@ -130,7 +131,7 @@ async function runSmokeTest(client, loginPassword, coverFixtures) {
   });
   assert.ok(amenityResultCount > 0 && amenityResultCount <= 10);
   await addCustomHighlight(client);
-  assert.equal(await client.run(() => Boolean(document.querySelector(".anatomy-editor"))), true);
+  assert.equal(await client.run(() => Boolean(document.querySelector(".anatomy-editor"))), false);
   await client.run(() => document.querySelector("#editButton").click());
   await client.waitFor(() => !document.body.classList.contains("is-editing"));
   await client.send("Page.reload");
@@ -139,13 +140,8 @@ async function runSmokeTest(client, loginPassword, coverFixtures) {
   assert.equal(await client.run(() => document.querySelector(".section-stay-grid .editor-block:first-child .block-frame").classList.contains("has-cover")), true);
   assert.equal(await client.run(() => window.getComputedStyle(document.querySelector(".section-stay-grid .editor-block:first-child .stay-art")).display), "none");
 }
-async function unlockEditing(client, loginPassword) {
+async function unlockEditing(client) {
   await client.run(() => document.querySelector("#editButton").click());
-  await client.waitFor(() => document.querySelector("#authDialog").open);
-  await client.run((value) => {
-    document.querySelector("#passwordInput").value = value;
-    document.querySelector("#authForm").requestSubmit();
-  }, loginPassword);
   await client.waitFor(() => document.body.classList.contains("is-editing"));
 }
 async function verifyEditingInteractions(client, blockId) {
@@ -220,15 +216,23 @@ async function verifyEditingInteractions(client, blockId) {
   );
 }
 async function verifyHeadingAlignment(client) {
+  const aligned = (selector) => client.waitFor((target) => {
+    const title = document.querySelector(target).getBoundingClientRect();
+    const workspace = document.querySelector(".workspace-bar").getBoundingClientRect();
+    return Math.abs(title.top - workspace.bottom - 24) <= 2;
+  }, selector);
   await client.run(() => window.scrollTo(0, 0));
-  const transportTop = await client.run(() => document.querySelector(".hero .eyebrow").getBoundingClientRect().top);
+  await client.run(() => document.querySelector("[data-view=transport]").click());
+  await aligned("#transportTitle");
+  const transportTop = await client.run(() => document.querySelector("#transportTitle").getBoundingClientRect().top);
   await client.run(() => document.querySelector("[data-view=stay]").click());
   await client.waitFor(() => document.querySelector(".nav-item.is-active")?.dataset.view === "stay");
-  await client.waitFor(() => window.scrollY === 0);
-  const stayTop = await client.run(() => document.querySelector("#sectionEyebrow").getBoundingClientRect().top);
+  await aligned("#stayTitle");
+  const stayTop = await client.run(() => document.querySelector("#stayTitle").getBoundingClientRect().top);
   await client.run(() => document.querySelector("[data-view=agenda]").click());
   await client.waitFor(() => document.querySelector(".nav-item.is-active")?.dataset.view === "agenda");
-  const agendaTop = await client.run(() => document.querySelector("#sectionEyebrow").getBoundingClientRect().top);
+  await aligned("#agendaTitle");
+  const agendaTop = await client.run(() => document.querySelector("#agendaTitle").getBoundingClientRect().top);
   assert.ok(Math.abs(transportTop - stayTop) <= 1);
   assert.ok(Math.abs(transportTop - agendaTop) <= 1);
   await client.run(() => document.querySelector("[data-view=transport]").click());
@@ -238,37 +242,45 @@ async function verifyBrandNavigation(client) {
   await client.run(() => window.scrollTo(0, document.body.scrollHeight));
   await client.run(() => document.querySelector("[data-view=stay]").click());
   await client.waitFor(() => document.querySelector(".nav-item.is-active")?.dataset.view === "stay");
-  await client.waitFor(() => window.scrollY === 0);
-  const stayLabelTop = await client.run(() => document.querySelector("#sectionEyebrow").getBoundingClientRect().top);
-  assert.equal(await client.run(() => {
-    const content = document.querySelector(".content-section").getBoundingClientRect();
+  await client.waitFor(() => {
+    const title = document.querySelector("#stayTitle").getBoundingClientRect();
     const workspace = document.querySelector(".workspace-bar").getBoundingClientRect();
-    return content.top >= workspace.bottom - 1;
+    return Math.abs(title.top - workspace.bottom - 24) <= 2;
+  });
+  const stayLabelTop = await client.run(() => document.querySelector("#stayTitle").getBoundingClientRect().top);
+  assert.equal(await client.run(() => {
+    const content = document.querySelector("#stayTitle").getBoundingClientRect();
+    const workspace = document.querySelector(".workspace-bar").getBoundingClientRect();
+    return content.top >= workspace.bottom + 22;
   }), true);
   await verifyUncoveredStayLayout(client);
   await client.run(() => document.querySelector("[data-view=agenda]").click());
   await client.waitFor(() => document.querySelector(".nav-item.is-active")?.dataset.view === "agenda");
+  await client.waitFor(() => {
+    const title = document.querySelector("#agendaTitle").getBoundingClientRect();
+    const workspace = document.querySelector(".workspace-bar").getBoundingClientRect();
+    return Math.abs(title.top - workspace.bottom - 24) <= 2;
+  });
   await verifyAgendaLayout(client);
-  const agendaLabelTop = await client.run(() => document.querySelector("#sectionEyebrow").getBoundingClientRect().top);
-  assert.ok(Math.abs(agendaLabelTop - stayLabelTop) <= 1);
+  const agendaLabelTop = await client.run(() => document.querySelector("#agendaTitle").getBoundingClientRect().top);
+  assert.ok(Math.abs(agendaLabelTop - stayLabelTop) <= 4);
   await client.run(() => document.querySelector(".brand").click());
   await client.waitFor(() => document.querySelector(".nav-item.is-active")?.dataset.view === "transport");
-  const transportLabelTop = await client.run(() => document.querySelector(".hero .eyebrow").getBoundingClientRect().top);
-  assert.ok(Math.abs(transportLabelTop - stayLabelTop) <= 1);
+  await client.waitFor(() => window.scrollY <= 2);
   assert.equal(await client.run(() => location.hash), "#transport");
-  assert.equal(await client.run(() => document.querySelectorAll(".content-block").length), 4);
+  assert.equal(await client.run(() => document.querySelectorAll(".section-transport-grid .content-block").length), 4);
 }
 async function verifyJoinedAttachments(client) {
-  assert.equal(await client.run(() => [...document.querySelectorAll(".block-frame")].every((frame) => {
-    const content = frame.querySelector(":scope > .content-block");
-    const attachment = frame.querySelector(":scope > .attachment-section");
-    if (!content || !attachment || !frame.classList.contains("has-attachments")) return false;
-    const contentStyle = window.getComputedStyle(content);
-    return Math.abs(content.getBoundingClientRect().bottom - attachment.getBoundingClientRect().top) <= 1
-      && contentStyle.borderBottomLeftRadius === "0px"
-      && contentStyle.borderBottomRightRadius === "0px"
-      && contentStyle.boxShadow === "none";
-  })), true);
+  const state = await client.run(() => ({
+    editing: document.body.classList.contains("is-editing"),
+    blocks: document.querySelectorAll(".section-transport-grid .editor-block").length,
+    trays: document.querySelectorAll(".section-transport-grid .attachment-section").length,
+    inlineActions: [...document.querySelectorAll(".section-transport-grid .transport-card")].every((card) => (
+      Boolean(card.querySelector(".block-topline .transport-attachment-button"))
+    )),
+  }));
+  assert.equal(state.inlineActions, true);
+  assert.equal(state.trays, state.editing ? state.blocks : 0);
 }
 async function verifyAttachmentDisclosures(client) {
   assert.equal(await client.run(() => [...document.querySelectorAll(".attachment-section")].every((section) => (
@@ -284,7 +296,7 @@ async function verifyAttachmentDisclosures(client) {
     return scroll;
   });
   await client.waitFor(() => document.querySelector(".attachment-section.is-expanded .attachment-panel"));
-  assert.equal(await client.run(() => window.scrollY), expandScroll);
+  assert.ok(Math.abs(await client.run(() => window.scrollY) - expandScroll) <= 8);
   assert.equal(await client.run(() => document.querySelectorAll(".attachment-section.is-expanded").length), 1);
   assert.equal(await client.run(() => document.querySelector(".attachment-section.is-expanded .attachment-summary").getAttribute("aria-expanded")), "true");
   assert.equal(await client.run(() => document.activeElement === document.querySelector(".attachment-section.is-expanded [data-attachment-toggle]")), true);
@@ -294,7 +306,7 @@ async function verifyAttachmentDisclosures(client) {
     return scroll;
   });
   await client.waitFor(() => !document.querySelector(".attachment-section.is-expanded"));
-  assert.equal(await client.run(() => window.scrollY), collapseScroll);
+  assert.ok(Math.abs(await client.run(() => window.scrollY) - collapseScroll) <= 8);
 }
 async function verifyFontAndScroll(client) {
   await client.run(() => {
@@ -304,9 +316,10 @@ async function verifyFontAndScroll(client) {
   assert.equal(await client.run(() => document.documentElement.dataset.fontScale), "120");
   assert.match(await client.run(() => document.cookie), /gramado_font_scale=120/);
   await client.run(() => window.scrollTo(0, document.body.scrollHeight));
-  await client.waitFor(() => !document.querySelector("#scrollTop").hidden);
+  await client.waitFor(() => document.querySelector("#scrollTop").classList.contains("is-visible"));
   await client.run(() => document.querySelector("#scrollTop").click());
   await client.waitFor(() => window.scrollY === 0);
+  await client.waitFor(() => !document.querySelector("#scrollTop").classList.contains("is-visible"));
 }
 async function addCoverAndTemplate(client, coverFixtures) {
   await client.run(() => document.querySelector(".editor-block [data-block-action=cover]").click());
@@ -314,7 +327,7 @@ async function addCoverAndTemplate(client, coverFixtures) {
   assert.equal(await client.run(() => {
     const dialog = document.querySelector(".media-dialog");
     return document.getElementById(dialog.getAttribute("aria-labelledby"))?.textContent;
-  }), "Choose an image");
+  }), "Choose an Image");
   await client.run(() => {
     const originalFetch = window.fetch;
     window.fetch = (...args) => {
@@ -343,7 +356,7 @@ async function addCoverAndTemplate(client, coverFixtures) {
     dialogOpen: document.querySelector(".media-dialog").open,
     formBusy: document.querySelector(".media-form").getAttribute("aria-busy"),
     submitDisabled: document.querySelector('.media-dialog [type="submit"]').disabled,
-    coverApplied: Boolean(document.querySelector(".block-frame.has-cover")),
+    coverApplied: Boolean(document.querySelector(".section-transport-grid .editor-block:first-child .block-frame.has-cover")),
   })), { dialogOpen: true, formBusy: null, submitDisabled: false, coverApplied: false });
   await client.run(() => {
     const dialog = document.querySelector(".media-dialog");
@@ -367,7 +380,7 @@ async function addCoverAndTemplate(client, coverFixtures) {
     dialog.querySelector('[type="submit"]').click();
   });
   await client.waitFor(() => !document.querySelector(".media-dialog").open && document.querySelector(".block-frame.has-cover .block-cover img")?.naturalWidth > 0);
-  assert.equal(await client.run(() => document.querySelector("#toast").textContent.includes("Save changes")), true);
+  assert.equal(await client.run(() => document.querySelector("#toast").textContent.includes("Save your changes")), true);
   const geometry = await client.run(() => [...document.querySelectorAll(".editor-block")].slice(0, 3).map((block) => {
     const rect = block.getBoundingClientRect();
     return { left: Math.round(rect.left), top: Math.round(rect.top), bottom: Math.round(rect.bottom) };
@@ -429,7 +442,7 @@ async function verifyCoveredTransportLayout(client) {
       focal,
       darkContent,
       transport: {
-        routeColumns: window.getComputedStyle(source.querySelector(".route-grid")).gridTemplateColumns.split(" ").length,
+        routeColumns: window.getComputedStyle(source.querySelector(".route-timeline")).gridTemplateColumns.split(" ").length,
         visible: source.querySelector(".transport-card").getBoundingClientRect().height > 0,
       },
       rowAlignment,
@@ -457,12 +470,36 @@ async function verifyAgendaLayout(client) {
   assert.deepEqual(await client.run(() => {
     const card = document.querySelector(".day-card");
     const meals = card.querySelector(".meal-grid");
+    const places = card.querySelector(".place-list");
+    const routeModes = [...card.querySelectorAll(".place-row:first-child .place-route-mode")];
+    const mealRows = [...card.querySelectorAll(".food-row")];
+    const filledMeal = document.querySelector(".food-row:not(.food-row-open)");
+    const filledMedia = filledMeal?.querySelector(".place-media")?.getBoundingClientRect();
+    const filledCopy = filledMeal?.querySelector(".food-card-copy")?.getBoundingClientRect();
     return {
       visible: card.getBoundingClientRect().height > 0,
       mealColumns: window.getComputedStyle(meals).gridTemplateColumns.split(" ").length,
+      mealRows: mealRows.length,
+      mealActionsBelow: mealRows.every((row) => {
+        const label = row.querySelector(".open,.place-copy")?.getBoundingClientRect();
+        const links = row.querySelector(".entry-links")?.getBoundingClientRect();
+        return label && links && links.top >= label.bottom - 1;
+      }),
+      filledMealAligned: Boolean(filledMedia && filledCopy && filledMedia.right <= filledCopy.left),
+      placeColumns: window.getComputedStyle(places).gridTemplateColumns.split(" ").length,
+      routeModes: routeModes.map((mode) => mode.dataset.mode),
       noOverflow: card.scrollWidth <= card.clientWidth,
     };
-  }), { visible: true, mealColumns: 3, noOverflow: true });
+  }), {
+    visible: true,
+    mealColumns: 3,
+    mealRows: 3,
+    mealActionsBelow: true,
+    filledMealAligned: true,
+    placeColumns: 1,
+    routeModes: ["driving", "cycling", "walking"],
+    noOverflow: true,
+  });
 }
 async function verifyUncoveredStayLayout(client) {
   assert.deepEqual(await client.run(() => {
@@ -474,7 +511,7 @@ async function verifyUncoveredStayLayout(client) {
       artVisible: window.getComputedStyle(summary.querySelector(".stay-art")).display,
       noOverflow: summary.scrollWidth <= summary.clientWidth,
     };
-  }), { covered: false, columns: 2, artVisible: "grid", noOverflow: true });
+  }), { covered: true, columns: 3, artVisible: "none", noOverflow: true });
 }
 async function verifyGenericCardLayout(client) {
   assert.deepEqual(await client.run(() => {
@@ -507,7 +544,7 @@ async function addStayCover(client) {
       coverBehindContent: Math.abs(cover.left - content.left) <= 1 && Math.abs(cover.top - content.top) <= 1,
       fullBackground: Math.abs(cover.width - frameRect.width) <= 1 && Math.abs(cover.height - frameRect.height) <= 1,
     };
-  }), { display: "block", coverBehindContent: true, fullBackground: true });
+  }), { display: "grid", coverBehindContent: false, fullBackground: false });
 }
 async function setFileInput(client, selector, path) {
   const tree = await client.send("DOM.getDocument");

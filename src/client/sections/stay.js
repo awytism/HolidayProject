@@ -1,17 +1,16 @@
 import { escapeHtml, initials, safeUrl } from "../utils/html.js";
-import { formatFullDate } from "../../shared/date-utils.mjs";
+import { formatClockTime, formatDisplayDate } from "../../shared/date-utils.mjs";
+import { formatDurationUnits } from "../../shared/duration-utils.mjs";
 import { renderActionIcon, renderIcon, TRUSTED_ICON_KEYS } from "../ui/icon-registry.js";
 import { createGenericBlock, GENERIC_TYPES, renderGenericBlock } from "./generic.js";
 import { editField, renderEntryImage, renderEntryLinks } from "./shared.js";
 
 export const stayConfig = {
-  eyebrow: "Hospedagem",
-  title: "Hospedagem",
+  eyebrow: "Accommodation",
+  title: "Accommodation",
   addTypes: [
     { type: "stay-summary", label: "Resumo da Hospedagem" },
     { type: "stay-amenities", label: "Comodidades" },
-    { type: "stay-anatomy", label: "Distribuição dos Quartos" },
-    { type: "essentials", label: "Informações Essenciais" },
     { type: "link", label: "Link" },
     { type: "note", label: "Descrição" },
   ],
@@ -23,10 +22,10 @@ export const stayConfig = {
     if (type === "link") return baseBlock(type, { title: "Link Útil", description: "Adicionar contexto", url: "https://" });
     return baseBlock(type, { name: "Nova Hospedagem", subtitle: "Adicionar descrição", checkin: "", checkinTime: "", checkout: "", checkoutTime: "", nights: "Adicionar noites", mapUrl: "", websiteUrl: "" });
   },
-  render(block, editing) {
+  render(block, editing, context = {}) {
     if (GENERIC_TYPES.has(block.type)) return renderGenericBlock(block, editing);
     if (editing) return renderStayEditor(block);
-    return renderStayBlock(block);
+    return renderStayBlock(block, context);
   },
 };
 
@@ -34,8 +33,8 @@ function baseBlock(type, data) {
   return { id: `stay-${crypto.randomUUID()}`, type, cover: null, data };
 }
 
-function renderStayBlock(block) {
-  if (block.type === "stay-summary") return renderSummary(block.data);
+function renderStayBlock(block, context) {
+  if (block.type === "stay-summary") return renderSummary(block, context);
   if (block.type === "stay-amenities") return renderAmenities(block.data);
   if (block.type === "stay-distances") return renderDistances(block.data);
   if (block.type === "stay-anatomy") return renderAnatomy(block.data);
@@ -43,21 +42,44 @@ function renderStayBlock(block) {
   return renderLink(block.data);
 }
 
-function renderSummary(data) {
-  const links = renderEntryLinks({ mapUrl: data.mapUrl, websiteUrl: data.websiteUrl || data.link }, data.name);
-  const checkinTime = data.checkinTime || "Horário a confirmar";
-  const checkoutTime = data.checkoutTime || "Horário a confirmar";
-  return `<article class="content-block stay-summary"><div class="stay-art" aria-hidden="true"><svg viewBox="0 0 300 220"><path d="M36 185h228M68 185v-82l82-54 82 54v82M105 185v-43h42v43M174 112h30v30h-30zM82 91l68-45 68 45"/></svg><span>${escapeHtml(data.nights)}</span></div><div class="stay-copy"><div class="stay-title-row"><div><small>Casa de Férias Inteira</small><h3>${escapeHtml(data.name)}</h3></div>${links}</div><p>${escapeHtml(data.subtitle)}</p><div class="property-pills"><span>3 quartos</span><span>4 camas</span><span>1 banheiro</span><span>90 m²</span></div><div class="stay-dates"><div><small>Entrada</small><strong>${escapeHtml(formatFullDate(data.checkin))}</strong><span class="stay-time">${escapeHtml(checkinTime)}</span></div><div><small>Saída</small><strong>${escapeHtml(formatFullDate(data.checkout))}</strong><span class="stay-time">${escapeHtml(checkoutTime)}</span></div></div></div></article>`;
+function renderSummary(block, context) {
+  const data = block.data;
+  const section = context.section ?? "stay";
+  const attachmentButton = context.attachments?.renderDownloadButton(block.id, section, "Download accommodation attachment")
+    ?? `<button class="transport-attachment-button" type="button" data-transport-attachment data-section="${escapeHtml(section)}" data-block-id="${escapeHtml(block.id)}" aria-label="Download accommodation attachment" title="Download accommodation attachment" aria-haspopup="dialog">${renderActionIcon("file")}</button>`;
+  const links = renderEntryLinks({ mapUrl: data.mapUrl, websiteUrl: data.websiteUrl || data.link }, data.name, attachmentButton, { showMissing: true });
+  const checkinTime = data.checkinTime || "TBD";
+  const checkoutTime = data.checkoutTime || "TBD";
+  const propertyPills = [
+    ["home", "3 quartos"],
+    ["bed", "4 camas"],
+    ["amenity-bathtub", "2 banheiros"],
+    ["mountain", "90 m²"],
+  ].map(([icon, label]) => `<span><i aria-hidden="true">${renderIcon(icon)}</i>${escapeHtml(label)}</span>`).join("");
+  return `<article class="content-block stay-summary stay-summary-clean"><div class="stay-copy"><div class="stay-title-row"><div class="stay-title-copy"><h3>${escapeHtml(data.name)}</h3><p>${escapeHtml(data.subtitle)}</p></div>${links}</div><div class="property-pills">${propertyPills}</div><div class="stay-dates"><div class="stay-date-card stay-checkin"><span class="stay-date-icon" aria-hidden="true" data-inline-date-action="block" data-inline-date-field="checkin" data-inline-date-label="Check-In Date">${renderIcon("calendar")}</span><div><small>Entrada</small><span class="stay-date-details"><strong data-inline-date-action="block" data-inline-date-field="checkin" data-inline-date-label="Check-In Date">${escapeHtml(formatDisplayDate(data.checkin))}</strong><span class="stay-date-separator" aria-hidden="true">·</span><span class="stay-time" data-inline-time-field="checkinTime" data-inline-time-label="Check-In Time">${escapeHtml(formatClockTime(checkinTime))}</span></span></div></div><div class="stay-date-card stay-checkout"><span class="stay-date-icon" aria-hidden="true" data-inline-date-action="block" data-inline-date-field="checkout" data-inline-date-label="Check-Out Date">${renderIcon("calendar")}</span><div><small>Saída</small><span class="stay-date-details"><strong data-inline-date-action="block" data-inline-date-field="checkout" data-inline-date-label="Check-Out Date">${escapeHtml(formatDisplayDate(data.checkout))}</strong><span class="stay-date-separator" aria-hidden="true">·</span><span class="stay-time" data-inline-time-field="checkoutTime" data-inline-time-label="Check-Out Time">${escapeHtml(formatClockTime(checkoutTime))}</span></span></div></div></div></div></article>`;
 }
 
 function renderAmenities(data) {
   const groups = data.groups.map(renderAmenityGroup).join("");
-  return `<article class="content-block amenity-card"><header><small>Destaques da Hospedagem</small><h3>${escapeHtml(data.title)}</h3></header><div class="amenity-groups">${groups}</div></article>`;
+  return `<article class="content-block amenity-card"><header class="amenity-card-header"><h3>${escapeHtml(data.title)}</h3></header><div class="amenity-groups">${groups}</div></article>`;
 }
 
 function renderAmenityGroup(group) {
-  const items = group.items.map((item) => `<li><span class="amenity-icon">${renderIcon(item.iconKey)}</span><span>${escapeHtml(item.label)}</span></li>`).join("");
-  return `<section class="amenity-group"><h4>${escapeHtml(group.label)}</h4><ul>${items}</ul></section>`;
+  const categoryIcon = amenityGroupIconKey(group);
+  const items = group.items.map((item) => `<li><span class="amenity-dot" aria-hidden="true"></span><span>${escapeHtml(item.label)}</span></li>`).join("");
+  return `<section class="amenity-group"><header class="amenity-group-heading"><span class="amenity-group-icon" data-icon="${escapeHtml(categoryIcon)}" aria-hidden="true">${renderIcon(categoryIcon)}</span><h4>${escapeHtml(group.label)}</h4></header><ul>${items}</ul></section>`;
+}
+
+function amenityGroupIconKey(group) {
+  const category = `${group.id ?? ""} ${group.label ?? ""}`.toLowerCase();
+  return [
+    [/kitchen|cozinha|dining|refeiç/, "cookware"],
+    [/bedroom|quarto|laundry|lavanderia/, "bed"],
+    [/bathroom|banheiro|wellness|bem-estar/, "amenity-bathtub"],
+    [/outdoor|extern|view|vista/, "amenity-tree"],
+    [/living|sala|comfort|conforto/, "amenity-sofa"],
+    [/media|technology|tecnologia/, "amenity-laptop"],
+  ].find(([pattern]) => pattern.test(category))?.[1] ?? "home";
 }
 
 function renderDistances(data) {
@@ -65,10 +87,10 @@ function renderDistances(data) {
   return `<article class="content-block distance-card"><header><small>A partir da Casa do Sol</small><h3>${escapeHtml(data.title)}</h3></header><div class="distance-list">${items}</div></article>`;
 }
 
-function renderDistanceItem(item) {
+function renderDistanceItem(item, index) {
   const image = renderEntryImage(item);
-  const links = renderEntryLinks({ mapUrl: landmarkMapUrl(item.address) }, item.name);
-  return `<section class="distance-landmark"><div class="distance-landmark-heading"><span class="distance-landmark-media"><span>${escapeHtml(initials(item.name))}</span>${image}</span><div class="distance-landmark-copy"><h4>${escapeHtml(item.name)}</h4></div>${links}</div><div class="distance-modes">${renderDistanceMode(item, "driving")}${renderDistanceMode(item, "walking")}${renderDistanceMode(item, "cycling")}</div></section>`;
+  const links = renderEntryLinks({ mapUrl: item.mapUrl || landmarkMapUrl(item.address) }, item.name);
+  return `<section class="distance-landmark" data-inline-image-entry="list" data-inline-image-index="${index}"><div class="distance-landmark-heading"><span class="distance-landmark-media"><span>${escapeHtml(initials(item.name))}</span>${image}</span><div class="distance-landmark-copy"><h4>${escapeHtml(item.name)}</h4></div>${links}</div><div class="distance-modes">${renderDistanceMode(item, "driving")}${renderDistanceMode(item, "walking")}${renderDistanceMode(item, "cycling")}</div></section>`;
 }
 
 function renderDistanceMode(item, mode) {
@@ -77,10 +99,11 @@ function renderDistanceMode(item, mode) {
     walking: { label: "A pé", distance: item.walkingDistance, time: item.walkingTime, url: item.walkingUrl, icon: "walking" },
     cycling: { label: "De bicicleta", distance: item.cyclingDistance, time: item.cyclingTime, url: item.cyclingUrl, icon: "bike" },
   }[mode];
+  const duration = formatDurationUnits(details.time);
   const href = safeUrl(details.url);
-  const contents = `<span class="distance-mode-icon" aria-hidden="true">${renderIcon(details.icon)}</span><span><small>${details.label}</small><strong>${escapeHtml(details.distance)}<span class="distance-time">· ${escapeHtml(details.time)}</span></strong></span>`;
-  if (!href) return `<span class="distance-mode">${contents}</span>`;
-  const ariaLabel = `${details.label} directions to ${item.name}: ${details.distance}, ${details.time}`;
+  const contents = `<span class="distance-mode-icon" aria-hidden="true">${renderIcon(details.icon)}</span><span><strong>${escapeHtml(details.distance)}<span class="distance-time">· ${escapeHtml(duration)}</span></strong></span>`;
+  if (!href) return `<span class="distance-mode" role="img" aria-label="${escapeHtml(`${details.label}: ${details.distance}, ${duration}`)}">${contents}</span>`;
+  const ariaLabel = `${details.label} directions to ${item.name}: ${details.distance}, ${duration}`;
   return `<a class="distance-mode" href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer" aria-label="${escapeHtml(ariaLabel)}" title="Abrir ${escapeHtml(details.label.toLowerCase())}">${contents}</a>`;
 }
 
@@ -112,7 +135,7 @@ function renderLink(data) {
 }
 
 function renderStayEditor(block) {
-  if (block.type === "stay-summary") return renderSummaryEditor(block.data);
+  if (block.type === "stay-summary") return renderSummaryEditor(block);
   if (block.type === "stay-amenities") return renderAmenitiesEditor(block.data);
   if (block.type === "stay-distances") return renderDistancesEditor(block.data);
   if (block.type === "stay-anatomy") return renderAnatomyEditor(block.data);
@@ -120,8 +143,15 @@ function renderStayEditor(block) {
   return `<div class="content-block edit-form">${editField("Título", "title", block.data.title)}${editField("Descrição", "description", block.data.description)}${editField("URL", "url", block.data.url, { type: "url" })}</div>`;
 }
 
-function renderSummaryEditor(data) {
-  return `<div class="content-block edit-form two-column">${editField("Nome da Hospedagem", "name", data.name)}${editField("Subtítulo", "subtitle", data.subtitle)}${editField("Data de Entrada", "checkin", data.checkin, { type: "date" })}${editField("Horário de Entrada", "checkinTime", data.checkinTime ?? "", { type: "time" })}${editField("Data de Saída", "checkout", data.checkout, { type: "date" })}${editField("Horário de Saída", "checkoutTime", data.checkoutTime ?? "", { type: "time" })}${editField("Duração", "nights", data.nights)}${editField("URL do Google Maps", "mapUrl", data.mapUrl ?? "", { type: "url" })}${editField("URL do site", "websiteUrl", data.websiteUrl || data.link || "", { type: "url" })}</div>`;
+function renderSummaryEditor(block) {
+  const data = block.data;
+  const image = renderEntryImage({ cover: block.cover });
+  const action = block.cover ? "Change" : "Add";
+  const visual = image
+    ? `<span class="stay-cover-preview">${image}</span>`
+    : `<span class="stay-cover-placeholder">${renderActionIcon("image")}</span>`;
+  const coverControl = `<div class="stay-cover-editor"><button class="stay-cover-button" type="button" data-stay-cover aria-label="${action} Cover Image">${visual}<span class="stay-cover-copy"><strong>Cover Image</strong><small>${action}</small></span></button></div>`;
+  return `<div class="content-block edit-form two-column">${editField("Nome da Hospedagem", "name", data.name)}${editField("Subtítulo", "subtitle", data.subtitle)}${editField("Data de Entrada", "checkin", data.checkin, { type: "date" })}${editField("Horário de Entrada", "checkinTime", data.checkinTime ?? "", { type: "time" })}${editField("Data de Saída", "checkout", data.checkout, { type: "date" })}${editField("Horário de Saída", "checkoutTime", data.checkoutTime ?? "", { type: "time" })}${editField("Duração", "nights", data.nights)}${editField("URL do Google Maps", "mapUrl", data.mapUrl ?? "", { type: "url" })}${editField("URL do site", "websiteUrl", data.websiteUrl || data.link || "", { type: "url" })}${coverControl}</div>`;
 }
 
 function renderAmenitiesEditor(data) {
@@ -130,8 +160,13 @@ function renderAmenitiesEditor(data) {
 }
 
 function renderAmenityGroupEditor(group) {
-  const selected = group.items.map((item) => `<span data-amenity-item="${escapeHtml(item.id)}">${renderIcon(item.iconKey)} ${escapeHtml(item.label)} <button type="button" data-amenity-action="delete-item" aria-label="Remover ${escapeHtml(item.label)}">×</button></span>`).join("");
+  const selected = group.items.map((item) => `<span data-amenity-item="${escapeHtml(item.id)}">${renderIcon(amenityItemIconKey(item))} ${escapeHtml(item.label)} <button type="button" data-amenity-action="delete-item" aria-label="Remover ${escapeHtml(item.label)}">×</button></span>`).join("");
   return `<section class="amenity-group-editor" data-amenity-group="${escapeHtml(group.id)}"><div class="collection-title"><input value="${escapeHtml(group.label)}" data-amenity-group-label aria-label="Nome do grupo"><button type="button" data-amenity-action="delete-group">Excluir Grupo</button></div><div class="amenity-selected">${selected}</div><label>Buscar Comodidades<input type="search" data-amenity-search placeholder="Buscar cozinha, vistas, estacionamento..."></label><div class="amenity-results" role="listbox"></div>${renderCustomAmenity()}</section>`;
+}
+
+function amenityItemIconKey(item) {
+  const identity = `${item.presetId ?? ""} ${item.id ?? ""} ${item.label ?? ""}`.toLowerCase();
+  return /\btoilet\b|vaso sanit[aá]rio/.test(identity) ? "toilet" : item.iconKey;
 }
 
 function renderCustomAmenity() {

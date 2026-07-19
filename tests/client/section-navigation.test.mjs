@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { calculateHeroScrollTop } from "../../src/client/app/section-navigation.js";
+import { calculateHeroScrollTop, calculateSectionScrollTop } from "../../src/client/app/section-navigation.js";
 
 test("positions a newly selected section at the complete hero", () => {
   assert.equal(calculateHeroScrollTop({
@@ -21,4 +21,13 @@ test("snaps a sub-pixel hero offset at the document start to zero", () => {
     heroViewportTop: -105.8,
     stickyViewportBottom: 141.2,
   }), 0);
+});
+
+test("leaves breathing room below the sticky menu when selecting a section", () => {
+  assert.equal(calculateSectionScrollTop({
+    pageScroll: 1200,
+    targetViewportTop: 260,
+    stickyViewportBottom: 64,
+    gap: 24,
+  }), 1372);
 });

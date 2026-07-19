@@ -37,7 +37,8 @@ export function isPortAvailable(port, host = "0.0.0.0") {
 export async function startWithAvailablePort(env = process.env) {
   assertNodeVersion();
   const candidates = buildPortCandidates(env);
-  if (env.GRAMADO_STRICT_PORT === "1" && !await isPortAvailable(candidates[0], "127.0.0.1")) {
+  const host = env.GRAMADO_HOST ?? "0.0.0.0";
+  if (env.GRAMADO_STRICT_PORT === "1" && !await isPortAvailable(candidates[0], host)) {
     throw new Error(`Port ${candidates[0]} is already in use; stop the conflicting process before starting Tripboard`);
   }
   const port = await selectAvailablePort(candidates).catch((error) => {
@@ -49,7 +50,7 @@ export async function startWithAvailablePort(env = process.env) {
   const projectDir = resolve(fileURLToPath(new URL("..", import.meta.url)));
   const serverPath = resolve(projectDir, "src/server/app.mjs");
   console.log(`Starting Gramado Tripboard on port ${port}...`);
-  console.log(`Open http://localhost:${port}`);
+  console.log(`Listening on ${host}:${port}; open http://127.0.0.1:${port} on this Mac`);
   const child = spawn(process.execPath, ["--env-file-if-exists=.env", serverPath], {
     cwd: projectDir,
     env: { ...env, PORT: String(port) },

@@ -26,19 +26,26 @@ import { renderCover } from "../sections/shared.js";
 import { AMENITY_CATALOG, searchAmenities } from "../domain/amenity-catalog.js";
 import { renderActionIcon, renderIcon } from "../ui/icon-registry.js";
 import { layoutBlockGrid } from "./layout-grid.js";
+import { renderEditorCardHeading } from "./editor-card-heading.js";
+
+export { editorCardTitle } from "./editor-card-heading.js";
 
 const COLOR_HEADER_TYPES = new Set([
   "table", "image-card", "icon-list", "checklist", "facts", "link-card", "note",
   "stay-amenities", "stay-anatomy", "essentials", "link", "saved-places",
 ]);
-const ATTACHMENT_HIDDEN_TYPES = new Set(["stay-amenities", "stay-distances"]);
+const ATTACHMENT_HIDDEN_TYPES = new Set(["stay-amenities", "stay-distances", "saved-places"]);
+const INLINE_ATTACHMENT_TYPES = new Set(["flight", "transfer", "stay-summary", "day"]);
+const REMOVED_STAY_TYPES = new Set(["stay-anatomy", "essentials"]);
 
-export function shouldRenderAttachments(type) {
+export function shouldRenderAttachments(type, editing = false) {
+  if (INLINE_ATTACHMENT_TYPES.has(type)) return editing;
   return !ATTACHMENT_HIDDEN_TYPES.has(type);
 }
 const DIRECTION_TOLERANCE = 4;
 
 const CLICK_HANDLERS = [
+  ["[data-stay-cover]", chooseBlockCover],
   ["[data-transport-cover]", chooseTransportLocationCover],
   ["[data-block-action]:not([data-block-action=drag])", runBlockAction],
   ["[data-add-type]", runAddBlock],
@@ -66,15 +73,21 @@ const INPUT_HANDLERS = [
   [(target) => target.dataset.spaceField !== undefined || target.dataset.bedField !== undefined, updateAnatomyInput],
 ];
 
-export function renderBlockEditor(root, store, attachments, section = store.getState().activeSection) {
+export function renderBlockEditor(root, store, attachments, section = store.getState().activeSection, options = {}) {
   const state = store.getState();
   const document = store.getDocument();
   const config = getSectionConfig(section);
-  const blocks = document.sections[section];
+  const renderEditing = state.editing && options.renderEditing !== false;
+  const blocks = document.sections[section].filter((block) => (
+    section !== "stay" || !REMOVED_STAY_TYPES.has(block.type)
+  ));
   const content = blocks.length
-    ? blocks.map((block) => renderBlock(block, config, state.editing, section, attachments)).join("")
-    : renderEmpty(state.editing);
-  root.innerHTML = `<div class="block-grid section-${section}-grid">${content}</div>${state.editing ? renderAddMenu(config) : ""}`;
+    ? blocks.map((block) => renderBlock(block, config, renderEditing, section, {
+      attachments,
+      inlineEditing: state.editing,
+    })).join("")
+    : renderEmpty(renderEditing);
+  root.innerHTML = `<div class="block-grid section-${section}-grid">${content}</div>${renderEditing ? renderAddMenu(config) : ""}`;
   bindBrokenImages(root);
   layoutBlockGrid(root);
 }
@@ -169,21 +182,27 @@ export function bindBlockEditor(root, context) {
   });
 }
 
-function renderBlock(block, config, editing, section, attachments) {
-  const span = block.layout?.span ?? (section === "agenda" ? 6 : 12);
-  const attachmentSection = shouldRenderAttachments(block.type) ? attachments?.render(block.id, section, editing) ?? "" : "";
-  const presentation = blockPresentation(block, Boolean(attachmentSection));
+function renderBlock(block, config, editing, section, options) {
+  const { attachments, inlineEditing } = options;
+  const span = block.layout?.span ?? 12;
+  const attachmentSection = shouldRenderAttachments(block.type, editing) ? attachments?.render(block.id, section, editing) ?? "" : "";
+  const presentation = blockPresentation(block, Boolean(attachmentSection), inlineEditing);
   const toolbar = editing ? renderToolbar(span, presentation.supportsColorHeader, presentation.colorHeader) : "";
-  return `<div class="editor-block block-span-${span} block-type-${escapeHtml(block.type)}" data-block-id="${escapeHtml(block.id)}">${toolbar}<div class="${presentation.frameClass}">${presentation.cover}${presentation.header}${config.render(block, editing)}${attachmentSection}</div></div>`;
+  const editorHeading = editing ? renderEditorCardHeading(block.type, section) : "";
+  const inlineImage = presentation.inlineImage ? ' data-inline-image-field="cover"' : "";
+  return `<div class="editor-block block-span-${span} block-type-${escapeHtml(block.type)}" data-block-id="${escapeHtml(block.id)}">${toolbar}<div class="${presentation.frameClass}"${inlineImage}>${presentation.cover}${presentation.header}${editorHeading}${config.render(block, editing, { attachments, section })}${attachmentSection}</div></div>`;
 }
 
-function blockPresentation(block, hasAttachments) {
+function blockPresentation(block, hasAttachments, inlineEditing) {
   const supportsColorHeader = COLOR_HEADER_TYPES.has(block.type);
   const colorHeader = supportsColorHeader && block.appearance?.colorHeader === true;
-  const cover = renderCover(block.cover);
+  const cover = renderCover(block.cover)
+    || (inlineEditing && ["stay-summary", "image-card"].includes(block.type)
+      ? '<div class="block-cover inline-image-empty"></div>'
+      : "");
   const frameClass = ["block-frame", cover && "has-cover", colorHeader && "has-color-header", hasAttachments && "has-attachments"].filter(Boolean).join(" ");
   const header = colorHeader ? `<header class="block-color-header"><h3>${escapeHtml(block.data.title)}</h3></header>` : "";
-  return { supportsColorHeader, colorHeader, cover, frameClass, header };
+  return { supportsColorHeader, colorHeader, cover, frameClass, header, inlineImage: Boolean(cover) };
 }
 
 function renderToolbar(span, supportsColorHeader, colorHeader) {

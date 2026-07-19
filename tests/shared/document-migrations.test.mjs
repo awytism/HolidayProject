@@ -28,6 +28,7 @@ test("deterministically migrates v2 without mutating content or existing IDs", (
   assert.equal(first.schemaVersion, 3);
   assert.equal(validateDocument(current), true);
   assert.deepEqual(current.meta, {
+    brandName: "Dudu & Ale",
     destination: "Preserved destination",
     region: "Rio Grande do Sul",
     startDate: "2026-10-24",
@@ -65,7 +66,7 @@ test("replaces legacy amenities with stable grouped items and seeds anatomy", ()
   );
   assert.equal(new Set(amenities.data.groups[0].items.map((item) => item.id)).size, legacy.data.items.length);
   assert.equal(anatomy.data.area, "90 m²");
-  assert.deepEqual(anatomy.data.spaces.map((space) => space.label), ["Room 1", "Room 2", "Room 3", "Living Room"]);
+  assert.deepEqual(anatomy.data.spaces.map((space) => space.label), ["Quarto 1", "Quarto 2", "Quarto 3", "Sala de Estar"]);
 });
 
 test("adds null covers to every block and agenda place", () => {
@@ -106,7 +107,7 @@ test("upgrades v5 landmark cards with deterministic driving and walking times", 
   assert.deepEqual(source, snapshot);
   assert.equal(validateDocument(migrated), true);
   assert.deepEqual(migratedDistances.data.items.map((item) => [item.drivingTime, item.walkingTime]), [
-    ["2 min", "7 min"], ["3 min", "14 min"], ["5 min", "19 min"], ["5 min", "18 min"],
+    ["2 m", "7 m"], ["3 m", "14 m"], ["5 m", "19 m"], ["5 m", "18 m"],
   ]);
 });
 
@@ -127,10 +128,10 @@ test("upgrades v6 landmark cards with cycling routes and optional covers", () =>
   const migratedDistances = migrated.sections.stay.find((block) => block.type === "stay-distances");
 
   assert.deepEqual(source, snapshot);
-  assert.equal(migrated.schemaVersion, 9);
+  assert.equal(migrated.schemaVersion, 12);
   assert.equal(validateDocument(migrated), true);
   assert.deepEqual(migratedDistances.data.items.map((item) => [item.cyclingDistance, item.cyclingTime]), [
-    ["0.6 km", "2 min"], ["1.1 km", "4 min"], ["2.0 km", "7 min"], ["1.6 km", "6 min"],
+    ["0.6 km", "2 m"], ["1.1 km", "4 m"], ["2.0 km", "7 m"], ["1.6 km", "6 m"],
   ]);
   assert.deepEqual(migratedDistances.data.items.map((item) => item.cover), [null, null, null, null]);
 });
@@ -147,7 +148,7 @@ test("upgrades v7 transport cards with origin and destination media", () => {
   const migrated = migrateDocument(source);
 
   assert.deepEqual(source, snapshot);
-  assert.equal(migrated.schemaVersion, 9);
+  assert.equal(migrated.schemaVersion, 12);
   assert.equal(validateDocument(migrated), true);
   assert.deepEqual(migrated.sections.transport.flatMap((block) => [block.data.originCover, block.data.destinationCover]), Array(8).fill(null));
 });
@@ -321,7 +322,7 @@ test("upgrades v8 Agenda places with optional route values", () => {
   const migrated = migrateDocument(source);
 
   assert.deepEqual(source, snapshot);
-  assert.equal(migrated.schemaVersion, 9);
+  assert.equal(migrated.schemaVersion, 12);
   assert.equal(validateDocument(migrated), true);
   for (const block of migrated.sections.agenda) {
     for (const place of block.data.places ?? []) {
@@ -331,4 +332,97 @@ test("upgrades v8 Agenda places with optional route values", () => {
       ], ["", "", "", "", "", ""]);
     }
   }
+});
+
+test("upgrades the imported Casa do Sol record without replacing its uploaded cover", () => {
+  const source = createDefaultDocument();
+  source.schemaVersion = 9;
+  const stay = source.sections.stay.find((block) => block.type === "stay-summary");
+  stay.data.name = "Casa do Sol";
+  stay.data.subtitle = "Incrível Casa com Hidro e Bikes";
+  stay.data.checkinTime = "14:00";
+  stay.data.checkoutTime = "11:00";
+  stay.cover = {
+    mediaId: "4Z_l586hODSen5GpgYTBMAAiscqyAa2oPGAqKLZYKC8",
+    alt: "",
+    position: "center",
+  };
+
+  const migrated = migrateDocument(source);
+  const migratedStay = migrated.sections.stay.find((block) => block.type === "stay-summary");
+
+  assert.equal(migrated.schemaVersion, 12);
+  assert.equal(migratedStay.data.name, "Casa Sol da Serra");
+  assert.equal(migratedStay.data.subtitle, "Incrível Casa com Hidro e Bikes");
+  assert.equal(migratedStay.data.checkinTime, "14:00");
+  assert.equal(migratedStay.data.checkoutTime, "11:00");
+  assert.deepEqual(migratedStay.cover, stay.cover);
+});
+
+test("upgrades v10 meal options with editable route distances", () => {
+  const source = createDefaultDocument();
+  source.schemaVersion = 10;
+  const options = source.sections.agenda.flatMap((block) => Object.values(block.data.meals ?? {}).flat());
+  for (const option of options) {
+    delete option.drivingDistance;
+    delete option.cyclingDistance;
+    delete option.walkingDistance;
+  }
+
+  const migrated = migrateDocument(source);
+  const migratedOptions = migrated.sections.agenda.flatMap((block) => Object.values(block.data.meals ?? {}).flat());
+  const houseMeal = migratedOptions.find((option) => option.name === "Casa do Sol");
+  const waterParkMeal = migratedOptions.find((option) => option.name === "Acquamotion");
+
+  assert.equal(migrated.schemaVersion, 12);
+  assert.equal(validateDocument(migrated), true);
+  assert.deepEqual([
+    houseMeal.drivingDistance,
+    houseMeal.cyclingDistance,
+    houseMeal.walkingDistance,
+  ], ["0", "0", "0"]);
+  assert.deepEqual([
+    waterParkMeal.drivingDistance,
+    waterParkMeal.cyclingDistance,
+    waterParkMeal.walkingDistance,
+  ], ["7.6 km", "7.1 km", "6.9 km"]);
+  assert.equal(migratedOptions.every((option) => [
+    option.drivingDistance,
+    option.cyclingDistance,
+    option.walkingDistance,
+  ].every((value) => typeof value === "string")), true);
+});
+
+test("upgrades v11 meal options with route times for the meal-card selector", () => {
+  const source = createDefaultDocument();
+  source.schemaVersion = 11;
+  const options = source.sections.agenda.flatMap((block) => Object.values(block.data.meals ?? {}).flat());
+  for (const option of options) {
+    delete option.drivingTime;
+    delete option.cyclingTime;
+    delete option.walkingTime;
+  }
+
+  const migrated = migrateDocument(source);
+  const migratedOptions = migrated.sections.agenda.flatMap((block) => Object.values(block.data.meals ?? {}).flat());
+  const houseMeal = migratedOptions.find((option) => option.name === "Casa do Sol");
+  const waterParkMeal = migratedOptions.find((option) => option.name === "Acquamotion");
+
+  assert.equal(migrated.schemaVersion, 12);
+  assert.equal(validateDocument(migrated), true);
+  assert.deepEqual([
+    houseMeal.drivingTime,
+    houseMeal.cyclingTime,
+    houseMeal.walkingTime,
+  ], ["0", "0", "0"]);
+  assert.deepEqual([
+    waterParkMeal.drivingTime,
+    waterParkMeal.cyclingTime,
+    waterParkMeal.walkingTime,
+  ], ["13 m", "29 m", "1 h 33 m"]);
+  assert.equal(migratedOptions.every((option) => [
+    option.drivingTime,
+    option.cyclingTime,
+    option.walkingTime,
+  ].every((value) => typeof value === "string")), true);
 });

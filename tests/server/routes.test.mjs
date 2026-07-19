@@ -82,6 +82,7 @@ test("builds the expected Express-compatible routes without loading Express glob
   assert.equal(result, router);
   assert.deepEqual(routes, [
     "POST /media",
+    "POST /attachments/:id/download",
     "POST /attachments/:section/:blockId",
     "PUT /attachments/:id/content",
     "GET /media/:id",
@@ -89,6 +90,7 @@ test("builds the expected Express-compatible routes without loading Express glob
     "GET /document",
     "PUT /document",
     "GET /session",
+    "POST /session/edit",
     "GET /attachments",
     "POST /login",
     "POST /logout",

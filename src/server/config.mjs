@@ -8,6 +8,7 @@ export const MAX_MEDIA_BYTES = 8 * 1024 * 1024;
 export const MAX_MEDIA_PIXELS = 20_000_000;
 export const MAX_ATTACHMENT_BYTES = 50 * 1024 * 1024;
 export const MAX_ATTACHMENT_STORAGE_BYTES = 2 * 1024 * 1024 * 1024;
+export const DEFAULT_ATTACHMENT_DOWNLOAD_PASSWORD_HASH = "scrypt$16384$8$1$DAwMDAwMDAwMDAwMDAwMDA$wLq-bSwxENOuUNI9z5NZ0Z3hdvY4VFuOiTcwf_bqceM";
 
 export class ConfigError extends Error {
   constructor(message) {
@@ -23,6 +24,11 @@ export function loadConfig(overrides = {}, env = process.env) {
     uploadDir: pick(overrides.uploadDir, env.GRAMADO_UPLOAD_DIR, "data/uploads"),
     attachmentDir: pick(overrides.attachmentDir, env.GRAMADO_ATTACHMENT_DIR, "data/attachments"),
     passwordHash: pick(overrides.passwordHash, env.GRAMADO_PASSWORD_SCRYPT_HASH),
+    attachmentDownloadPasswordHash: pick(
+      overrides.attachmentDownloadPasswordHash,
+      env.GRAMADO_ATTACHMENT_DOWNLOAD_PASSWORD_SCRYPT_HASH,
+      DEFAULT_ATTACHMENT_DOWNLOAD_PASSWORD_HASH,
+    ),
     ipHmacSecret: pick(overrides.ipHmacSecret, env.GRAMADO_IP_HMAC_SECRET),
     cookieName: pick(overrides.cookieName, env.GRAMADO_SESSION_COOKIE, "gramado_session"),
     cookiePath: pick(overrides.cookiePath, env.GRAMADO_COOKIE_PATH, "/"),
@@ -93,6 +99,7 @@ function validateConfig(config) {
   }
   try {
     validateScryptPasswordHash(config.passwordHash);
+    validateScryptPasswordHash(config.attachmentDownloadPasswordHash);
     validateDocument(config.initialDocument);
     if (JSON.stringify(config.initialDocument) === undefined) {
       throw new TypeError("initial document must be JSON serializable");

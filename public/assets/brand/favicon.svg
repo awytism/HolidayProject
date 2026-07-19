@@ -1,8 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-labelledby="la-holidays-favicon-title la-holidays-favicon-desc">
-  <title id="la-holidays-favicon-title">L&amp;A Holidays</title>
-  <desc id="la-holidays-favicon-desc">An ascending airplane inside a broad rounded heart.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-labelledby="da-holidays-favicon-title da-holidays-favicon-desc">
+  <title id="da-holidays-favicon-title">D&amp;A Holidays</title>
+  <desc id="da-holidays-favicon-desc">An ascending airplane inside a broad rounded heart.</desc>
   <style>
-    .heart,.plane { stroke-width: 1.6; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+    .heart,.plane { stroke-width: 1.5; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
     .heart { fill: #eee8f8; stroke: #8c78bd; }
     .plane { fill: none; stroke: #65518f; stroke-linecap: round; }
     @media (prefers-color-scheme: dark) { .heart { fill: #332b43; stroke: #b7a4da; } .plane { stroke: #d1c2e9; } }

@@ -17,6 +17,11 @@ export function safeUrl(value) {
   }
 }
 
+export function safeAssetUrl(value) {
+  const url = String(value ?? "");
+  return /^\/assets\/[A-Za-z0-9][A-Za-z0-9._/-]*$/.test(url) && !url.split("/").includes("..") ? url : "";
+}
+
 export function initials(value) {
   return String(value ?? "").split(/\s+/).filter(Boolean).slice(0, 2)
     .map((word) => word[0]).join("").toUpperCase() || "+";
