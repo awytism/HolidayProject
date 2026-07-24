@@ -40,9 +40,9 @@ test("collapsed place cards and workspace controls keep a deliberate mobile orde
   const collapsedMenu = polish.slice(polish.indexOf("Mobile navigation stays on one compact row"));
   assert.match(collapsedMenu, /grid-template-areas:\s*"brand nav mobile-actions"[^}]+justify-content:\s*center/);
   assert.match(collapsedMenu, /\.main-nav\s*\{[^}]+justify-self:\s*center/);
-  assert.match(collapsedMenu, /\.workspace-actions\s*\{[^}]+grid-template-columns:\s*repeat\(6,minmax\(0,1fr\)\)[^}]+transform:\s*translateX\(50%\)/);
+  assert.match(collapsedMenu, /\.workspace-actions\s*\{[^}]+width:\s*min\(272px,calc\(100vw - 20px\)\)[^}]+grid-template-columns:\s*repeat\(8,minmax\(0,1fr\)\)[^}]+transform:\s*translateX\(50%\)/);
   assert.match(collapsedMenu, /\.workspace-bar\.is-mobile-menu-open \.workspace-actions\s*\{\s*display:\s*grid/);
-  assert.match(collapsedMenu, /\.workspace-actions > \.language-switch,[\s\S]+grid-column:\s*span 3/);
+  assert.match(collapsedMenu, /\.workspace-actions > \.language-switch,[\s\S]+grid-column:\s*span 4/);
   assert.match(collapsedMenu, /\.workspace-actions button\s*\{[^}]+touch-action:\s*manipulation/);
   assert.match(collapsedMenu, /\.day-card \.place-row,[\s\S]+row-gap:\s*24px[^}]+padding:\s*22px 20px/);
   assert.match(collapsedMenu, /\.day-card \.place-route-modes,[\s\S]+gap:\s*13px/);
@@ -84,7 +84,7 @@ test("text-bearing pills and cards reflow before their copy can overflow", async
   assert.match(containment, /\.hero \.location-line,[\s\S]+\.section-pill > span,[\s\S]+\.priority-control,[\s\S]+\.nested-toolbar\s*\{\s*flex-wrap:\s*wrap/);
   assert.match(containment, /@container \(max-width:\s*1050px\)\s*\{\s*\.property-pills\s*\{\s*grid-template-columns:\s*repeat\(2,minmax\(0,1fr\)\)/);
   const finalTracks = polish.slice(polish.indexOf("Final responsive track decisions"));
-  assert.match(finalTracks, /@media \(min-width:\s*601px\) and \(max-width:\s*820px\)[\s\S]+\.hero-stats\s*\{\s*grid-template-columns:\s*repeat\(auto-fit,minmax\(210px,1fr\)\)/);
+  assert.match(finalTracks, /@media \(min-width:\s*601px\) and \(max-width:\s*820px\)[\s\S]+\.hero-stats\s*\{\s*grid-template-columns:\s*minmax\(0,1fr\)/);
   assert.match(finalTracks, /@media \(min-width:\s*601px\) and \(max-width:\s*700px\)[\s\S]+\.transport-card \.route-timeline\s*\{[^}]+grid-template-columns:\s*minmax\(0,1fr\)[^}]+gap:\s*24px/);
   assert.ok(styleIndex.indexOf('@import url("./containment.css")') > styleIndex.indexOf('@import url("./edit-text-mode.css")'));
   assert.match(finalContainment, /html,\s*body\s*\{[^}]+min-width:\s*0[^}]+overflow-x:\s*clip/);

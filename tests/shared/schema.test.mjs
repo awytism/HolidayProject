@@ -30,7 +30,7 @@ test("accepts the complete schema v4 default document", () => {
   const flights = document.sections.transport.filter((block) => block.type === "flight");
   assert.deepEqual(flights[0].data.originCover, rioCover);
   assert.deepEqual(flights[1].data.destinationCover, rioCover);
-  assert.equal(document.sections.transport.every((block) => block.data.providerCover === null), true);
+  assert.equal(flights.every((block) => block.data.providerCover === null), true);
   const agendaPlaces = document.sections.agenda.flatMap((block) => block.data.places ?? []);
   assert.equal(agendaPlaces.filter((place) => place.name === "Aeroporto Internacional Antônio Carlos Jobim").every((place) => JSON.stringify(place.cover) === JSON.stringify(rioCover)), true);
   assert.equal(agendaPlaces.filter((place) => place.name !== "Aeroporto Internacional Antônio Carlos Jobim").every((place) => place.cover === null && place.image === ""), true);
@@ -53,10 +53,12 @@ test("accepts the complete schema v4 default document", () => {
 test("validates structured transport direction, stop and seat choices", () => {
   const document = createDefaultDocument();
   const flight = document.sections.transport.find((block) => block.type === "flight");
+  delete flight.data.segments;
   flight.data.directionMode = "inbound";
   flight.data.serviceType = "layover";
   flight.data.stopCount = 2;
   flight.data.seatCount = 3;
+  flight.data.notesVisible = false;
   assert.equal(validateDocument(document), true);
 
   flight.data.stopCount = 0;
@@ -64,11 +66,15 @@ test("validates structured transport direction, stop and seat choices", () => {
   flight.data.stopCount = 2;
   flight.data.seatCount = 21;
   assert.throws(() => validateDocument(document), /seat count/);
+  flight.data.seatCount = 3;
+  flight.data.notesVisible = "false";
+  assert.throws(() => validateDocument(document), /notes visibility/);
 });
 
 test("accepts transport endpoint dates and IANA time zones", () => {
   const document = createDefaultDocument();
   const flight = document.sections.transport.find((block) => block.type === "flight");
+  delete flight.data.segments;
   flight.data.departureDate = "2026-10-24";
   flight.data.arrivalDate = "2026-10-25";
   flight.data.departureTimeZone = "America/Sao_Paulo";
@@ -166,7 +172,7 @@ function normalizeAmenityLabel(label) {
 }
 
 test("accepts every generic block type in every section", () => {
-  for (const section of ["transport", "stay", "agenda"]) {
+  for (const section of ["transport", "stay", "agenda", "places"]) {
     const document = createDefaultDocument();
     document.sections[section].push(...genericBlocks(section));
     assert.equal(validateDocument(document), true);
@@ -176,12 +182,13 @@ test("accepts every generic block type in every section", () => {
   }
 });
 
-test("preserves section-specific types and rejects misplaced or removed types", () => {
-  assert.equal(validateCustomBlock(block("specific-flight", "flight", flightData()), "transport"), true);
-  assert.equal(validateCustomBlock(block("specific-link", "link", {
-    title: "Booking", description: "Open reservation", url: "https://example.com",
-  }), "stay"), true);
-  assert.throws(() => validateCustomBlock(block("wrong-flight", "flight", flightData()), "agenda"), /block type/);
+test("accepts supported card types in every section and rejects removed or unknown types", () => {
+  for (const section of ["transport", "stay", "agenda", "places"]) {
+    assert.equal(validateCustomBlock(block(`flight-${section}`, "flight", flightData()), section), true);
+    assert.equal(validateCustomBlock(block(`link-${section}`, "link", {
+      title: "Booking", description: "Open reservation", url: "https://example.com",
+    }), section), true);
+  }
   assert.throws(() => validateCustomBlock(block("old-amenities", "amenities", { title: "Old", items: [] }), "stay"), /block type/);
   assert.throws(() => validateCustomBlock(block("unknown", "script", {}), "transport"), /block type/);
 });
@@ -222,12 +229,12 @@ test("accepts only supported optional block widths", () => {
 
 test("requires valid ordered ISO dates while allowing new undated blocks", () => {
   const document = createDefaultDocument();
-  document.sections.transport[0].data.date = "";
+  document.sections.transport.find((block) => block.type === "flight").data.date = "";
   assert.equal(validateDocument(document), true);
 
   for (const value of ["Oct 24", "2026-02-29", "2026-1-02"]) {
     const invalid = createDefaultDocument();
-    invalid.sections.transport[0].data.date = value;
+    invalid.sections.transport.find((block) => block.type === "flight").data.date = value;
     assert.throws(() => validateDocument(invalid), /flight date/);
   }
 

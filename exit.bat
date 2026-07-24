@@ -27,7 +27,7 @@ endlocal & exit /b %EXIT_CODE%
   "  try {" ^
   "    $uri = New-Object System.UriBuilder('http', $hostName, $port, '/api/document');" ^
   "    $state = Invoke-RestMethod -Uri $uri.Uri.AbsoluteUri -TimeoutSec 2;" ^
-  "    return $state.document.schemaVersion -eq 3 -and $null -ne $state.document.sections;" ^
+  "    return $state.document.schemaVersion -ge 3 -and $null -ne $state.document.sections;" ^
   "  } catch { return $false };" ^
   "};" ^
   "function Test-TripboardListeners($process, $listeners) {" ^

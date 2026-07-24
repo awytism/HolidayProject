@@ -55,7 +55,7 @@ export const AMENITY_CATALOG = Object.freeze([
   preset("dining-table", "Mesa de jantar", "kitchen", "dining", ["dining area", "mesa de jantar"]),
 
   preset("hot-tub", "Hidromassagem", "bathroom-wellbeing", "hot-tub", ["hydro", "hydromassage", "jacuzzi", "hidromassagem"]),
-  preset("bathtub", "Banheira", "bathroom-wellbeing", "bath", ["bath", "banheira"]),
+  preset("bathtub", "Banheira", "bathroom-wellbeing", "amenity-bathtub", ["bath", "banheira"]),
   preset("shower", "Chuveiro", "bathroom-wellbeing", "shower", ["walk-in shower", "chuveiro"]),
   preset("toilet", "Vaso sanitário", "bathroom-wellbeing", "toilet", ["toilet", "lavatory", "vaso", "sanitario"]),
   preset("hair-dryer", "Secador de cabelo", "bathroom-wellbeing", "hair-dryer", ["blow dryer", "secador de cabelo"]),
@@ -92,7 +92,7 @@ export const AMENITY_CATALOG = Object.freeze([
   preset("bed-linens", "Roupa de cama", "comfort", "bed", ["sheets", "bedding", "roupa de cama"]),
   preset("extra-pillows", "Travesseiros e cobertores extras", "comfort", "pillow", ["spare bedding", "travesseiros e cobertores"]),
   preset("blackout-shades", "Cortinas blackout", "comfort", "blinds", ["room-darkening shades", "cortinas blackout"]),
-  preset("mosquito-net", "Mosquiteiro", "comfort", "shield", ["mosquito screen", "mosquiteiro"]),
+  preset("mosquito-net", "Mosquiteiro", "comfort", "blinds", ["mosquito screen", "mosquiteiro"]),
   preset("cleaning-products", "Produtos de limpeza", "comfort", "spray", ["cleaning supplies", "produtos de limpeza"]),
   preset("safe", "Cofre", "comfort", "safe", ["security box", "cofre"]),
 
@@ -105,7 +105,7 @@ export const AMENITY_CATALOG = Object.freeze([
 
   preset("wifi", "Wi-Fi", "entertainment-connectivity", "wifi", ["wifi", "wireless internet", "internet sem fio"]),
   preset("tv", "TV", "entertainment-connectivity", "tv", ["television", "smart tv"]),
-  preset("streaming-services", "Serviços de streaming", "entertainment-connectivity", "play", ["netflix", "video streaming"]),
+  preset("streaming-services", "Serviços de streaming", "entertainment-connectivity", "tv", ["netflix", "video streaming"]),
   preset("sound-system", "Sistema de som", "entertainment-connectivity", "speaker", ["bluetooth speaker", "stereo", "sistema de som"]),
   preset("ethernet", "Conexão Ethernet", "entertainment-connectivity", "ethernet", ["wired internet", "cabo de rede"]),
   preset("books", "Livros e material de leitura", "entertainment-connectivity", "book", ["library", "livros"]),
@@ -114,7 +114,7 @@ export const AMENITY_CATALOG = Object.freeze([
 
   preset("crib", "Berço", "family", "crib", ["cot", "berco"]),
   preset("high-chair", "Cadeira alta infantil", "family", "chair", ["baby chair", "cadeirao"]),
-  preset("baby-bath", "Banheira para bebê", "family", "bath", ["infant tub", "banheira de bebe"]),
+  preset("baby-bath", "Banheira para bebê", "family", "amenity-bathtub", ["infant tub", "banheira de bebe"]),
   preset("changing-table", "Trocador", "family", "baby", ["changing station", "trocador"]),
   preset("childrens-dinnerware", "Louça infantil", "family", "utensils", ["kids dishes", "louca infantil"]),
   preset("toys", "Livros e brinquedos infantis", "family", "toy", ["kids toys", "brinquedos infantis"]),
@@ -138,6 +138,7 @@ export const AMENITY_CATALOG = Object.freeze([
 
   preset("pets-allowed", "Aceita animais", "policies", "paw", ["pet friendly", "aceita animais"]),
   preset("smoking-allowed", "Permitido fumar", "policies", "smoking", ["smoking permitted", "permitido fumar"]),
+  preset("non-smoking", "Proibido fumar", "policies", "non-smoking", ["smoke-free", "no smoking", "não fumar", "proibido fumar"]),
   preset("events-allowed", "Eventos permitidos", "policies", "calendar", ["parties allowed", "eventos permitidos"]),
   preset("self-check-in", "Check-in autônomo", "policies", "key", ["independent check-in", "check-in autonomo"]),
   preset("host-greeting", "Recepção pelo anfitrião", "policies", "host", ["host welcome", "recepcao pelo anfitriao"]),

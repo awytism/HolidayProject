@@ -10,6 +10,8 @@
     "lint": "eslint src tests scripts",
     "check": "npm run lint && npm test",
     "release": "node scripts/build-release.mjs",
+    "placeholderize": "node --env-file-if-exists=.env scripts/placeholderize-document.mjs",
+    "strip-images": "node --env-file-if-exists=.env scripts/strip-document-images.mjs",
     "auth:hash": "node src/server/hash-password.mjs"
   },
   "engines": {

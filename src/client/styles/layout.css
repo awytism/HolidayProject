@@ -3,7 +3,7 @@
 .brand-wordmark { display: inline-flex; align-items: baseline; gap: 4px; color: #303030; white-space: nowrap; }
 .brand-wordmark > span { font-size: 20px; font-weight: 900; letter-spacing: -.07em; }
 .brand:hover { transform: translateY(-1px); }
-.main-nav { --menu-tab-size: 42px; position: relative; display: grid; width: calc(var(--menu-tab-size) * 3 + var(--menu-control-gap) * 2); grid-template-columns: repeat(3,var(--menu-tab-size)); justify-self: start; align-items: center; gap: var(--menu-control-gap); margin: 0; padding: 0; border: 0; background: transparent; }
+.main-nav { --menu-tab-size: 42px; position: relative; display: grid; width: calc(var(--menu-tab-size) * 4 + var(--menu-control-gap) * 3); grid-template-columns: repeat(4,var(--menu-tab-size)); justify-self: start; align-items: center; gap: var(--menu-control-gap); margin: 0; padding: 0; border: 0; background: transparent; }
 .nav-item { position: relative; display: inline-grid; width: var(--menu-tab-size); height: var(--menu-tab-size); min-height: var(--menu-tab-size); place-items: center; padding: 0; border: var(--icon-outline-width) solid currentColor; border-radius: 50%; outline: 0; background: var(--surface-soft); color: var(--muted); line-height: 1; }
 .nav-item svg { width: 20px; height: 20px; }
 .nav-line-icon { display: block; width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: var(--icon-stroke-width); }

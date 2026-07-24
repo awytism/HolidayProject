@@ -1,13 +1,13 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
-
 test("page shell exposes one continuous trip page and accessible global controls", async () => {
   const html = await readFile("public/index.html", "utf8");
   assert.doesNotMatch(html, /<footer/i);
   assert.match(html, /id="scrollTop"[^>]+aria-label="Scroll to top"/);
   assert.match(html, /id="fontDecrease"/);
   assert.match(html, /id="fontIncrease"/);
+  assert.match(html, /id="fontFamilyToggle"/);
   assert.match(html, /id="editButton"[^>]+aria-label="Edit"[^>]+aria-pressed="false"/);
   assert.match(html, /class="edit-icon"/);
   assert.match(html, /class="save-icon"/);
@@ -15,18 +15,19 @@ test("page shell exposes one continuous trip page and accessible global controls
   assert.doesNotMatch(html, /cancelButton/);
   assert.doesNotMatch(html, /menuSettingsToggle|menuSettingsPanel/);
   assert.ok(html.indexOf('class="language-switch"') < html.indexOf('id="fontDecrease"'));
-  assert.ok(html.indexOf('id="fontIncrease"') < html.indexOf('id="paletteToggle"'));
+  assert.ok(html.indexOf('id="fontIncrease"') < html.indexOf('id="fontFamilyToggle"'));
+  assert.ok(html.indexOf('id="fontFamilyToggle"') < html.indexOf('id="paletteToggle"'));
   assert.ok(html.indexOf('id="paletteToggle"') < html.indexOf('id="themeToggle"'));
   assert.ok(html.indexOf('id="themeToggle"') < html.indexOf('id="editButton"'));
   assert.ok(html.indexOf('id="editButton"') < html.indexOf('id="scrollTop"'));
   assert.doesNotMatch(html, /class="workspace-actions"[\s\S]+id="scrollTop"[\s\S]+<\/div>\s*<\/header>/);
   assert.match(html, /<\/header>\s*<div id="topSentinel"[^>]*><\/div>\s*<button class="scroll-top" id="scrollTop"/);
   assert.match(html, /<header class="workspace-bar">/);
-  assert.equal((html.match(/data-section-root=/g) ?? []).length, 3);
+  assert.equal((html.match(/data-section-root=/g) ?? []).length, 4);
   assert.match(html, /id="transportRoot"/);
   assert.match(html, /id="stayRoot"/);
-  assert.match(html, /id="agendaRoot"/);
-  assert.match(html, />Our Next Adventure<\/div>/);
+  assert.match(html, /id="agendaRoot"/); assert.match(html, /id="placesRoot"/);
+  assert.match(html, />Subtitle<\/div>/);
   assert.match(html, /id="heroCoverButton"[^>]+hidden/);
   assert.match(html, /<path d="M12 5v14M5 12h14"\/><\/svg><span class="sr-only" id="heroCoverButtonLabel">Add image<\/span>/);
 });
@@ -39,22 +40,25 @@ test("menu removes the old brand icon and exposes the current palette picker", a
     readFile("src/client/app/preferences.js", "utf8"),
   ]);
   assert.doesNotMatch(html, /brand-mark|brand-mark-plane|palette-picker/);
-  assert.match(html, /<link rel="icon" href="\/assets\/brand\/favicon\.png" type="image\/png">/);
+  assert.match(html, /<link rel="icon" id="siteFavicon" href="\/assets\/brand\/favicon\.png" type="image\/png">/);
   assert.doesNotMatch(html, /brand-plane-icon/);
-  assert.match(html, /aria-label="Dudu &amp; Ale" data-no-translate/);
-  assert.match(html, /class="brand-wordmark"[^>]*><span class="brand-name" id="brandName">Dudu &amp; Ale<\/span>/);
+  assert.match(html, /aria-label="Itinerary" data-no-translate/);
+  assert.match(html, /class="brand-wordmark"[^>]*><span class="brand-name" id="brandName" data-inline-static>Itinerary<\/span>/);
   assert.doesNotMatch(layout, /brand-plane-icon|brand-plane-gradient/);
   assert.doesNotMatch(html, /brand-heart|♥/);
   assert.match(html, /data-view="transport"[^>]+aria-label="Transport"[^>]+title="Transport"[^>]*><svg class="nav-line-icon nav-airplane-icon"/);
   assert.match(html, /data-view="stay"[^>]+aria-label="Accommodation"[^>]+title="Accommodation"[^>]*><svg class="nav-line-icon nav-accommodation-icon"/);
-  assert.match(html, /data-view="agenda"[^>]+aria-label="Agenda"[^>]+title="Agenda"[^>]*><svg class="nav-line-icon nav-agenda-icon"/);
+  assert.match(html, /data-view="agenda"[^>]+aria-label="Agenda"[^>]+title="Agenda"[^>]*><svg class="nav-line-icon nav-agenda-icon"/); assert.match(html, /data-view="places"[^>]+aria-label="Other"[^>]+title="Other"[^>]*><svg class="nav-line-icon nav-places-icon"/);
   assert.match(html, /id="paletteToggle"[^>]+aria-label="Open colour palette"[^>]+aria-haspopup="menu"[^>]+aria-controls="paletteMenu"[^>]+aria-expanded="false"/);
   assert.match(html, /id="paletteMenu"[^>]+role="menu"[^>]+aria-label="Palette options"[^>]+hidden/);
   assert.doesNotMatch(html, /palette-popover-heading|<strong>Colour palette<\/strong>|<small>Choose a palette<\/small>/);
-  assert.equal((html.match(/role="menuitemradio"/g) ?? []).length, 1);
-  assert.match(html, /data-palette="coral-olive-teal"[^>]+aria-label="Coral, Olive &amp; Teal — current palette"[^>]+aria-checked="true"/);
+  assert.equal((html.match(/class="palette-choice(?: is-selected)?"/g) ?? []).length, 3);
+  assert.doesNotMatch(html, /fresh-lagoon|sunset-glow|green-blue|vivid-journey|gramado-garden|retro-arches/);
+  assert.match(html, /data-palette="coral-olive-teal"[^>]+aria-label="Coral, Olive &amp; Teal"[^>]+aria-checked="true"/);
+  assert.match(html, /data-palette="custom-palette"[^>]+aria-label="Custom Palette"[^>]+aria-checked="false"/);
+  assert.equal((html.match(/data-custom-palette-input/g) ?? []).length, 5);
   assert.doesNotMatch(html, /palette-choice-copy|<strong>Coral, Olive &amp; Teal<\/strong>|<small>Current palette<\/small>/);
-  assert.match(html, /<title>Travel Plan \| Gramado 2026<\/title>/);
+  assert.match(html, /<title>Travel Plan \| Itinerary<\/title>/);
   assert.match(html, /data-locale="en-GB"[^>]+aria-pressed="true"/);
   assert.match(html, /data-locale="pt-BR"/);
   assert.match(html, /class="workspace-actions"/);
@@ -64,36 +68,12 @@ test("menu removes the old brand icon and exposes the current palette picker", a
   assert.match(preferences, /PALETTE_KEY = "gramado-trip-palette"/);
   assert.match(preferences, /DEFAULT_PALETTE = "coral-olive-teal"/);
   assert.match(preferences, /function setPalette\(/);
-  assert.match(preferences, /const menuWidth = Math\.min\(132, window\.innerWidth - edgeGap \* 2\)/);
+  assert.match(preferences, /const editing = document\.body\?\.classList\.contains\("is-inline-editing"\)[\s\S]+const menuWidth = Math\.min\(editing \? 292 : 154, window\.innerWidth - edgeGap \* 2\)/);
   assert.match(preferences, /aria-expanded/);
 });
 
-test("uses Google Sans Flex throughout the interface", async () => {
-  const [html, tokens, base, editor, attachments, polish] = await Promise.all([
-    readFile("public/index.html", "utf8"),
-    readFile("src/client/styles/tokens.css", "utf8"),
-    readFile("src/client/styles/base.css", "utf8"),
-    readFile("src/client/styles/editor.css", "utf8"),
-    readFile("src/client/styles/attachments.css", "utf8"),
-    readFile("src/client/styles/polish.css", "utf8"),
-  ]);
-
-  assert.match(html, /fonts\.googleapis\.com\/css2\?family=Google\+Sans\+Flex:wght@300\.\.900&amp;display=swap/);
-  assert.match(tokens, /--font-family:\s*"Google Sans Flex",\s*sans-serif/);
-  assert.match(base, /body\s*\{[^}]+font-family:\s*var\(--font-family\)/);
-  assert.match(editor, /font-family:\s*var\(--font-family\)/);
-  assert.match(attachments, /font-family:\s*var\(--font-family\)/);
-  assert.match(tokens, /--font-weight-regular:\s*400/);
-  assert.match(tokens, /--font-weight-pill-title:\s*500/);
-  assert.match(tokens, /--font-weight-title:\s*600/);
-  assert.match(polish, /body \*:not\(#destination\):not\(\.brand-name\):not\(h1\)\s*\{\s*font-weight:\s*var\(--font-weight-regular\)/);
-  assert.match(polish, /\.provider strong,[\s\S]+\.place-copy strong,[\s\S]+\.attachment-summary-copy strong,[\s\S]+font-weight:\s*var\(--font-weight-title\)/);
-  assert.doesNotMatch(polish, /body :is\([^)]*h1/);
-  assert.doesNotMatch(`${html}\n${tokens}\n${base}\n${editor}\n${attachments}`, /ABeeZee|Roboto/);
-});
-
 test("uses one thin line weight for every interface icon", async () => {
-  const [tokens, base, blocks, polish, iconRegistry, accommodationIcon, priorityStar, staySection] = await Promise.all([
+  const [tokens, base, blocks, polish, iconRegistry, accommodationIcon, priorityStar, staySection, stayEditor] = await Promise.all([
     readFile("src/client/styles/tokens.css", "utf8"),
     readFile("src/client/styles/base.css", "utf8"),
     readFile("src/client/styles/blocks.css", "utf8"),
@@ -101,11 +81,11 @@ test("uses one thin line weight for every interface icon", async () => {
     readFile("src/client/ui/icon-registry.js", "utf8"),
     readFile("public/assets/nav-icons/accommodation-house.svg", "utf8"),
     readFile("public/assets/place-icons/priority-star-outline.svg", "utf8"),
-    readFile("src/client/sections/stay.js", "utf8"),
+    readFile("src/client/sections/stay.js", "utf8"), readFile("src/client/editor/inline-stay-editor.js", "utf8"),
   ]);
 
-  assert.match(tokens, /--icon-stroke-width:\s*1\.5px/);
-  assert.match(tokens, /--icon-outline-width:\s*1\.5px/);
+  assert.match(tokens, /--icon-line-width:\s*1\.5px/);
+  assert.match(tokens, /--icon-stroke-width:\s*var\(--icon-line-width\)[\s\S]+--icon-outline-width:\s*var\(--icon-line-width\)/);
   assert.match(base, /svg\s*\{[^}]+stroke-width:\s*var\(--icon-stroke-width\)/);
   assert.match(base, /svg :where\(path,rect,circle,ellipse,line,polyline,polygon\)\s*\{[^}]+vector-effect:\s*non-scaling-stroke[^}]+stroke-width:\s*inherit/);
   assert.match(iconRegistry, /stroke-width="1\.5"/);
@@ -116,13 +96,13 @@ test("uses one thin line weight for every interface icon", async () => {
     assert.ok(iconRegistry.includes(`d="${geometry}"`));
   }
   assert.doesNotMatch(staySection, /AMENITY_GROUP_ICONS/);
-  assert.match(staySection, /class="amenity-dot"/);
-  assert.match(staySection, /\["bed",\s*"4 camas"\]/);
-  assert.match(staySection, /\["amenity-bathtub",\s*"2 banheiros"\]/);
+  assert.match(staySection, /class="amenity-icon"/);
+  assert.match(stayEditor, /iconKey: "bed", label: "Bedrooms and beds"/);
+  assert.match(stayEditor, /iconKey: "amenity-bathtub", label: "Bathroom details"/);
   assert.match(blocks, /\.stay-art svg\s*\{[^}]+stroke-width:\s*var\(--icon-stroke-width\)/);
   assert.match(polish, /\.scroll-top svg\s*\{[^}]+stroke-width:\s*var\(--icon-stroke-width\)/);
-  assert.match(polish, /One physical line weight[\s\S]+\.hero-location-icon,[\s\S]+\.meal-heading-icon,[\s\S]+\.toolbar-icon,[\s\S]+border-width:\s*var\(--icon-outline-width\)/);
-  assert.match(polish, /canonical icon treatment[\s\S]+border-color:\s*currentColor[\s\S]+stroke-width:\s*var\(--icon-stroke-width\) !important/);
+  assert.match(polish, /canonical icon treatment[\s\S]+\.mobile-actions-toggle,[\s\S]+\.icon-button,[\s\S]+\.edit-button,[\s\S]+border-width:\s*var\(--icon-line-width\) !important/);
+  assert.match(polish, /canonical icon treatment[\s\S]+border-color:\s*currentColor[\s\S]+stroke-width:\s*var\(--icon-line-width\) !important;[\s\S]+vector-effect:\s*non-scaling-stroke/);
   assert.match(polish, /--date-icon-background:\s*#FFF1EC[\s\S]+--duration-icon-background:\s*#F3F8DC[\s\S]+--transport-icon-background:\s*#E8F6F3/);
 });
 
@@ -156,29 +136,31 @@ test("toolbar tooltips reset icon typography and keep the leading drag label on-
   assert.match(blockEditor, /className:\s*"drag-handle"[^}]+align:\s*"start"/);
 });
 test("groups section navigation beside the brand and uses non-link pill headings", async () => {
-  const [html, layout, polish, main] = await Promise.all([
+  const [html, layout, polish, main, elementCollector] = await Promise.all([
     readFile("public/index.html", "utf8"),
     readFile("src/client/styles/layout.css", "utf8"),
     readFile("src/client/styles/polish.css", "utf8"),
     readFile("src/client/main.js", "utf8"),
+    readFile("src/client/app/elements.js", "utf8"),
   ]);
 
-  assert.equal((html.match(/<h2 class="section-pill"/g) ?? []).length, 3);
-  assert.match(html, /id="transportTitle"><span><span class="section-pill-icon section-pill-icon-transport"[^>]+><svg class="nav-line-icon nav-airplane-icon"[\s\S]+?<\/svg><\/span><span class="section-pill-label" id="transportTitleLabel">Itinerary/);
+  assert.equal((html.match(/<h2 class="section-pill"/g) ?? []).length, 4);
+  assert.match(html, /id="transportTitle"><span><span class="section-pill-icon section-pill-icon-transport"[^>]+><svg class="nav-line-icon nav-airplane-icon"[\s\S]+?<\/svg><\/span><span class="section-pill-label" id="transportTitleLabel">Transit/);
   assert.match(html, /id="stayTitle"><span><span class="section-pill-icon section-pill-icon-stay"[^>]+><svg class="nav-line-icon nav-accommodation-icon"[\s\S]+?<\/svg><\/span><span class="section-pill-label" id="stayTitleLabel">Accommodation/);
-  assert.match(html, /id="agendaTitle"><span><span class="section-pill-icon section-pill-icon-agenda"[^>]+><svg class="nav-line-icon nav-agenda-icon"[\s\S]+?<\/svg><\/span><span class="section-pill-label" id="agendaTitleLabel">Agenda/);
-  assert.equal((html.match(/class="section-pill-icon section-pill-icon-spacer"/g) ?? []).length, 3);
+  assert.match(html, /id="agendaTitle"><span><span class="section-pill-icon section-pill-icon-agenda"[^>]+><svg class="nav-line-icon nav-agenda-icon"[\s\S]+?<\/svg><\/span><span class="section-pill-label" id="agendaTitleLabel">Agenda/); assert.match(html, /id="placesTitle"><span><span class="section-pill-icon section-pill-icon-places"[^>]+><svg class="nav-line-icon nav-places-icon"[\s\S]+?<\/svg><\/span><span class="section-pill-label" id="placesTitleLabel">Other/);
+  assert.equal((html.match(/class="section-pill-icon section-pill-icon-spacer"/g) ?? []).length, 0); assert.doesNotMatch(html, /section-pill-measure/);
   assert.doesNotMatch(html, /data-section-link|<a class="section-pill"/);
   assert.doesNotMatch(html, /Route at a Glance|Stay in Gramado|Week in Gramado/);
   assert.match(html, /data-view="transport"[^>]+aria-label="Transport"[^>]+title="Transport"[^>]*><svg class="nav-line-icon nav-airplane-icon"/);
   assert.doesNotMatch(html, /data-view="transport"[^>]+aria-haspopup="menu"/);
-  assert.match(html, /id="itineraryNavButton"[^>]+data-view="agenda"[^>]+aria-label="Agenda"[^>]+title="Agenda"[^>]*><svg class="nav-line-icon nav-agenda-icon"/);
+  assert.match(html, /id="itineraryNavButton"[^>]+data-view="agenda"[^>]+aria-label="Agenda"[^>]+title="Agenda"[^>]*><svg class="nav-line-icon nav-agenda-icon"/); assert.match(html, /id="placesNavButton"[^>]+data-view="places"[^>]+aria-label="Other"[^>]+title="Other"[^>]*><svg class="nav-line-icon nav-places-icon"/);
+
   assert.doesNotMatch(html, /itineraryDateMenu|aria-haspopup="menu"[^>]+aria-controls="itineraryDateMenu"/);
   assert.match(layout, /\.workspace-bar[^}]+border:\s*0/);
   assert.match(layout, /\.workspace-bar[^}]+--brand-nav-gap:\s*28px[^}]+--menu-control-gap:\s*10px[^}]+column-gap:\s*var\(--brand-nav-gap\)/);
   assert.match(layout, /\.workspace-bar[^}]+grid-template-columns:\s*auto auto minmax\(0,1fr\)/);
   assert.match(layout, /\.brand[^}]+width:\s*auto[^}]+height:\s*44px[^}]+justify-self:\s*start/);
-  assert.match(layout, /\.main-nav[^}]+--menu-tab-size:\s*42px[^}]+width:\s*calc\(var\(--menu-tab-size\) \* 3 \+ var\(--menu-control-gap\) \* 2\)[^}]+grid-template-columns:\s*repeat\(3,var\(--menu-tab-size\)\)[^}]+justify-self:\s*start[^}]+gap:\s*var\(--menu-control-gap\)[^}]+border:\s*0[^}]+background:\s*transparent/);
+  assert.match(layout, /\.main-nav[^}]+--menu-tab-size:\s*42px[^}]+width:\s*calc\(var\(--menu-tab-size\) \* 4 \+ var\(--menu-control-gap\) \* 3\)[^}]+grid-template-columns:\s*repeat\(4,var\(--menu-tab-size\)\)[^}]+justify-self:\s*start[^}]+gap:\s*var\(--menu-control-gap\)[^}]+border:\s*0[^}]+background:\s*transparent/);
   assert.match(layout, /\.workspace-actions[^}]+gap:\s*var\(--menu-control-gap\)/);
   assert.doesNotMatch(layout, /\.main-nav::before/);
   assert.match(layout, /\.nav-item[^}]+width:\s*var\(--menu-tab-size\)[^}]+place-items:\s*center[^}]+border:\s*var\(--icon-outline-width\) solid currentColor[^}]+border-radius:\s*50%[^}]+outline:\s*0/);
@@ -188,19 +170,26 @@ test("groups section navigation beside the brand and uses non-link pill headings
   assert.doesNotMatch(layout, /\.nav-item::after/);
   assert.match(layout, /\.section-pill[^}]+text-transform:\s*uppercase/);
   assert.match(polish, /\.main-nav \.nav-airplane-icon\s*\{[^}]+transform:\s*scale\(\.88\)[^}]+transform-origin:\s*center/);
-  assert.match(main, /transport:\s*document\.querySelector\("#transportTitle"\)/);
-  assert.match(main, /brandName:\s*document\.querySelector\("#brandName"\)/);
+  assert.match(elementCollector, /document\.querySelector\(\x60\[data-page-section="\$\{section\}"\]\x60\)/);
+  assert.match(elementCollector, /brandName:\s*document\.querySelector\("#brandName"\)/);
   assert.doesNotMatch(main, /elements\.brandName[^\n]+addEventListener|unlockEditing|saveEditing|cancelEditing/);
   assert.match(main, /renderMeta\(tripDocument, false\)/);
-  assert.match(main, /brandName:\s*elements\.brandName/);
-  assert.match(main, /field === "brandName" \? \(meta\.brandName \?\? "Dudu & Ale"\)/);
-  assert.match(main, /switchSection\("transport", elements\.hero\)/);
+  assert.doesNotMatch(main, /brandName:\s*elements\.brandName/);
+  assert.match(main, /const itineraryLabel = language\.translate\("Itinerary"\)[\s\S]+elements\.brandName\.contentEditable = "false"/);
+  assert.match(main, /switchSection\("transport", elements\.hero\.hidden \? navigationTarget\("transport"\) : elements\.hero\)/);
+  assert.match(main, /function navigationTarget\(section\)\s*\{\s*return elements\.sectionTitleHeadings\[section\] \?\? elements\.sectionTargets\[section\]/);
   assert.match(main, /function bindEvents\(\)[\s\S]+elements\.nav\.forEach[\s\S]+button\.addEventListener\("click", \(\) => switchSection\(button\.dataset\.view\)\)/);
   assert.doesNotMatch(main, /initializeItineraryDateMenu|renderItineraryDateMenu|data-agenda-block-id/);
   assert.match(main, /stickyViewportBottom:[^}]+gap:\s*24/);
   assert.doesNotMatch(main, /sectionLinks|data-section-link/);
 });
 
+test("sizes the itinerary brand pill from the longer Portuguese label", async () => {
+  const styles = await readFile("src/client/styles/polish.css", "utf8");
+
+  assert.match(styles, /\.workspace-bar \.brand::before\s*\{[\s\S]*?content:\s*"Itinerário";[\s\S]*?visibility:\s*hidden;/u);
+  assert.match(styles, /\.brand-wordmark\s*\{[\s\S]*?width:\s*100%;[\s\S]*?grid-area:\s*1\s*\/\s*1;[\s\S]*?justify-content:\s*center;/u);
+});
 test("renders the three hero facts in one readable full-width information deck", async () => {
   const [html, layout] = await Promise.all([
     readFile("public/index.html", "utf8"),
@@ -210,7 +199,7 @@ test("renders the three hero facts in one readable full-width information deck",
   assert.equal((html.match(/<div class="stat stat-(?:date|duration|transport)">/g) ?? []).length, 3);
   assert.equal((html.match(/class="stat-icon"/g) ?? []).length, 3);
   assert.match(html, /<small data-inline-static>Date<\/small>/);
-  assert.match(html, /<strong class="travel-dates" id="travelDates" data-inline-date-action="hero" data-inline-date-label="Trip Dates">24\/10 - 01\/11 2026<\/strong>/);
+  assert.match(html, /<strong class="travel-dates" id="travelDates" data-inline-date-action="hero" data-inline-date-label="Trip Dates">Add trip dates<\/strong>/);
   assert.doesNotMatch(html, /Travel Dates/);
   assert.match(layout, /\.hero\s*\{[^}]+min-height:\s*420px[^}]+grid-template-columns:\s*1fr[^}]+grid-template-rows:\s*minmax\(0,1fr\) auto/);
   assert.match(layout, /\.hero-stats[^}]+width:\s*100%[^}]+grid-template-columns:\s*minmax\(0,1\.4fr\) minmax\(0,\.8fr\) minmax\(0,\.8fr\)[^}]+justify-self:\s*stretch/);
@@ -232,8 +221,8 @@ test("uses a one-pixel-smaller page type scale while preserving Gramado's own la
   assert.doesNotMatch(layout, /gramado-hero-cnn\.jpg/i);
   assert.doesNotMatch(layout.match(/\.hero\s*\{[^}]+\}/)?.[0] ?? "", /url\(/i); assert.match(polish, /\.nav-item svg,\.nav-line-icon\s*\{[^}]*width:\s*20px[^}]*height:\s*20px/);
   assert.match(polish, /\.stat small\s*\{[^}]*font-size:\s*9\.45px/);
-  assert.match(polish, /\.hero-stats\s*\{[^}]+--hero-stats-inline-padding:\s*clamp\(38px,4\.5vw,54px\)[^}]+--hero-stat-width-breathing-room:\s*24px[^}]+width:\s*min\(100%,calc\(var\(--hero-stat-inline-size,360px\) \+ var\(--hero-stat-width-breathing-room\) \+ \(2 \* var\(--hero-stats-inline-padding\)\)\)\)[^}]+grid-template-columns:\s*minmax\(0,1fr\)[^}]+justify-self:\s*end/);
-  assert.match(polish, /@media \(max-width:820px\)[\s\S]+\.hero-stats\s*\{[^}]+grid-template-columns:\s*minmax\(0,1\.35fr\) minmax\(0,\.825fr\) minmax\(0,\.825fr\)/);
+  assert.match(polish, /\.hero-stats\s*\{[^}]+--hero-stats-inline-padding:\s*clamp\(38px,4\.5vw,54px\)[^}]+--hero-stat-width-breathing-room:\s*8px[^}]+width:\s*min\(100%,calc\(var\(--hero-stat-inline-size,260px\)[^}]+grid-template-columns:\s*minmax\(0,1fr\)[^}]+justify-self:\s*end[^}]+justify-items:\s*stretch/);
+  assert.match(polish, /@media \(max-width:820px\)[\s\S]+\.hero-stats\s*\{[^}]+grid-template-columns:\s*minmax\(0,1fr\)[^}]+justify-items:\s*stretch/);
   assert.match(polish, /\.hero h1\s*\{[^}]*font-size:\s*var\(--hero-title-size\)/);
 });
 
@@ -255,7 +244,7 @@ test("loads the visual polish layer for richer page-wide hierarchy", async () =>
   assert.match(polish, /\.hero\s*\{[^}]+--hero-outline-width:\s*3px[^}]+grid-template-columns:\s*minmax\(0,1fr\) minmax\(0,1fr\)[^}]+grid-template-rows:\s*1fr[^}]+border:\s*var\(--hero-outline-width\) solid transparent[^}]+background:\s*var\(--section-outline-gradient\) border-box/);
   assert.match(polish, /\.hero::before\s*\{[^}]+inset:\s*var\(--hero-outline-width\)[^}]+border-radius:\s*calc\(34px - var\(--hero-outline-width\)\)/);
   assert.match(polish, /\.hero > div:first-child\s*\{[^}]+width:\s*100%[^}]+min-height:\s*100%[^}]+max-width:\s*none[^}]+background:\s*transparent[^}]+color:\s*#303030[^}]+backdrop-filter:\s*none/);
-  assert.match(polish, /\.hero-stats\s*\{[^}]+grid-template-columns:\s*minmax\(0,1fr\)[^}]+gap:\s*18px[^}]+padding:\s*var\(--hero-stats-inline-padding\)[^}]+background:\s*transparent[^}]+backdrop-filter:\s*none/);
+  assert.match(polish, /\.hero-stats\s*\{[^}]+width:\s*min\(100%,calc\(var\(--hero-stat-inline-size,260px\)[^}]+grid-template-columns:\s*minmax\(0,1fr\)[^}]+gap:\s*18px[^}]+padding:\s*var\(--hero-stats-inline-padding\)[^}]+background:\s*transparent[^}]+backdrop-filter:\s*none/);
   assert.match(polish, /--section-transport-color:\s*color-mix\(in srgb,var\(--primary\) 72%,var\(--text\)\)/);
   assert.match(polish, /--section-stay-color:\s*color-mix\(in srgb,var\(--accent\) 48%,var\(--text\)\)/);
   assert.match(polish, /--section-agenda-color:\s*color-mix\(in srgb,var\(--sage\) 54%,var\(--text\)\)/);
@@ -271,8 +260,8 @@ test("loads the visual polish layer for richer page-wide hierarchy", async () =>
   assert.match(polish, /\.hero \.eyebrow::before\s*\{[^}]+content:\s*none/);
   assert.match(polish, /\.hero \.eyebrow::after\s*\{\s*content:\s*none/);
   assert.match(polish, /\.hero \.location-line\s*\{[^}]+border:\s*3px solid transparent[^}]+linear-gradient\(#FFFFFF,#FFFFFF\) padding-box[^}]+var\(--section-outline-gradient\) border-box/);
-  assert.match(polish, /\.hero-location-icon\s*\{[^}]+border:\s*var\(--icon-outline-width\) solid var\(--icon-yellow-colour\)[^}]+border-radius:\s*50%[^}]+background:\s*var\(--icon-yellow-background\)[^}]+color:\s*var\(--icon-yellow-colour\)/);
-  assert.match(polish, /\.hero > div:first-child \.location-line \.hero-location-pin\s*\{[^}]+width:\s*var\(--content-icon-glyph-size\)[^}]+color:\s*var\(--icon-yellow-colour\)[^}]+stroke:\s*currentColor/);
+  assert.match(polish, /\.hero-location-icon\s*\{[^}]+border:\s*var\(--icon-outline-width\) solid var\(--icon-fourth-colour\)[^}]+border-radius:\s*50%[^}]+background:\s*var\(--icon-fourth-background\)[^}]+color:\s*var\(--icon-fourth-colour\)/);
+  assert.match(polish, /\.hero > div:first-child \.location-line \.hero-location-pin\s*\{[^}]+width:\s*var\(--content-icon-glyph-size\)[^}]+color:\s*var\(--icon-fourth-colour\)[^}]+stroke:\s*currentColor/);
   assert.match(polish, /\.hero \.stat:not\(:last-child\)::after\s*\{\s*content:\s*none/);
   assert.match(polish, /\.hero \.stat strong\s*\{\s*color:\s*#303030/);
   assert.match(polish, /--dark-glass-gradient:\s*linear-gradient\(135deg,rgba\(55,42,37,\.62\)[^;]+rgba\(43,50,36,\.58\)[^;]+rgba\(32,54,51,\.62\)/);
@@ -283,20 +272,20 @@ test("loads the visual polish layer for richer page-wide hierarchy", async () =>
   assert.match(polish, /--transport-detail-gradient:\s*var\(--card-wash-gradient\)/);
   assert.match(polish, /--destination-gradient:\s*linear-gradient\(120deg,#F58D6C 0%,#ACC65A 50%,#61BDB2 100%\)/);
   assert.match(polish, /--hero-title-gradient:\s*linear-gradient\(120deg,#F3A081 0%,#B5C678 50%,#7CB9B1 100%\)/);
-  assert.match(polish, /--hero-title-size:\s*clamp\(52px,7\.2vw,82px\)/);
+  assert.match(polish, /--hero-title-size:\s*clamp\(34px,5vw,58px\)/);
   assert.match(polish, /--stay-title-size:\s*clamp\(34px,3\.4vw,42px\)/);
-  assert.match(polish, /\.hero h1\s*\{[^}]+font-size:\s*var\(--hero-title-size\)[^}]+line-height:\s*\.94/);
+  assert.match(polish, /\.hero h1\s*\{[^}]+font-size:\s*var\(--hero-title-size\)[^}]+line-height:\s*1\.12/); assert.doesNotMatch(polish, /data-locale="pt-BR"\] \.hero h1/);
   assert.match(polish, /\.stay-copy h3\s*\{[^}]+font-size:\s*var\(--stay-title-size\)[^}]+line-height:\s*1\.02/);
   assert.match(polish, /#destination\s*\{\s*font-size:\s*inherit/);
-  assert.match(polish, /\.hero h1\s*\{[^}]+max-width:\s*none[^}]+overflow:\s*visible/);
-  assert.match(polish, /#destination\s*\{[^}]+padding-right:\s*\.1em[^}]+background:\s*var\(--hero-title-gradient\)[^}]+-webkit-text-fill-color:\s*transparent/);
+  assert.match(polish, /\.hero h1\s*\{[^}]+max-width:\s*100%[^}]+overflow:\s*visible/);
+  assert.match(polish, /#destination\s*\{[^}]+max-width:\s*100%[^}]+padding:\s*\.16em \.12em \.16em \.04em[^}]+overflow:\s*visible[^}]+background:\s*var\(--hero-title-gradient\)[^}]+-webkit-text-fill-color:\s*transparent/);
   assert.match(polish, /--section-pill-gradient:\s*linear-gradient\(120deg,var\(--gradient-coral-soft\) 0%,var\(--gradient-olive-soft\) 50%,var\(--gradient-teal-soft\) 100%\)/);
   assert.match(polish, /\.workspace-bar\s*\{[^}]+background:\s*#FFFFFF[^}]+color:\s*#303030[^}]+backdrop-filter:\s*none/);
   assert.match(polish, /\.detail-strip\s*\{[^}]+background:\s*var\(--transport-detail-gradient\)/);
   assert.doesNotMatch(polish, /brand-plane-icon|brand-plane-gradient/);
   assert.doesNotMatch(polish, /airplane-outline-icon|airplane-outline-transport\.png/);
   assert.doesNotMatch(polish, /brand-name-gradient/);
-  assert.match(polish, /\.main-nav\s*\{[^}]+width:\s*calc\(42px \* 3 \+ var\(--menu-control-gap\) \* 2\)[^}]+grid-template-columns:\s*repeat\(3,42px\)[^}]+gap:\s*var\(--menu-control-gap\)[^}]+padding:\s*0[^}]+background:\s*transparent[^}]+box-shadow:\s*none/);
+  assert.match(polish, /\.main-nav\s*\{[^}]+width:\s*calc\(42px \* 4 \+ var\(--menu-control-gap\) \* 3\)[^}]+grid-template-columns:\s*repeat\(4,42px\)[^}]+gap:\s*var\(--menu-control-gap\)[^}]+padding:\s*0[^}]+background:\s*transparent[^}]+box-shadow:\s*none/);
   assert.match(polish, /\.workspace-actions\s*\{\s*gap:\s*var\(--menu-control-gap\)/);
   assert.match(polish, /\.nav-item\s*\{[^}]+border:\s*var\(--icon-outline-width\) solid currentColor[^}]+border-radius:\s*50%/);
   assert.match(polish, /@media \(max-width:600px\)[\s\S]+\.nav-item\s*\{[^}]+border-radius:\s*50%/); assert.match(polish, /\.stat-icon\s*\{[^}]+border-radius:\s*50%/);
@@ -306,7 +295,7 @@ test("loads the visual polish layer for richer page-wide hierarchy", async () =>
   assert.match(polish, /\.nav-item\.is-active\s*\{[^}]+border-color:\s*currentColor[^}]+box-shadow:\s*0 7px 16px/);
   assert.match(polish, /\.nav-item\[data-view="transport"\][^{]+\{\s*background:\s*var\(--date-icon-background\);\s*color:\s*var\(--date-icon-colour\)/);
   assert.match(polish, /\.nav-item\[data-view="stay"\][^{]+\{\s*background:\s*var\(--duration-icon-background\);\s*color:\s*var\(--duration-icon-colour\)/);
-  assert.match(polish, /\.nav-item\[data-view="agenda"\][^{]+\{\s*background:\s*var\(--transport-icon-background\);\s*color:\s*var\(--transport-icon-colour\)/);
+  assert.match(polish, /\.nav-item\[data-view="agenda"\][^{]+\{\s*background:\s*var\(--transport-icon-background\);\s*color:\s*var\(--transport-icon-colour\)/); assert.match(polish, /\.nav-item\[data-view="places"\][^{]+\{\s*border-color:\s*var\(--icon-fourth-colour\);\s*background:\s*var\(--icon-fourth-background\);\s*color:\s*var\(--icon-fourth-colour\)/);
   assert.match(polish, /--section-outline-coral:\s*#F7A187/);
   assert.match(polish, /--section-outline-olive:\s*#C8D96F/);
   assert.match(polish, /--section-outline-teal:\s*#75CFC4/);
@@ -326,8 +315,8 @@ test("loads the visual polish layer for richer page-wide hierarchy", async () =>
   assert.match(polish, /\.section-pill-icon svg\s*\{[^}]+width:\s*var\(--content-icon-glyph-size\)[^}]+height:\s*var\(--content-icon-glyph-size\)/);
   assert.match(polish, /\.section-pill-icon-transport\s*\{[^}]+--section-pill-icon-background:\s*var\(--icon-coral-background\)[^}]+--section-pill-icon-colour:\s*var\(--icon-coral-colour\)/);
   assert.match(polish, /\.section-pill-icon-stay\s*\{[^}]+--section-pill-icon-background:\s*var\(--icon-olive-background\)[^}]+--section-pill-icon-colour:\s*var\(--icon-olive-colour\)/);
-  assert.match(polish, /\.section-pill-icon-agenda\s*\{[^}]+--section-pill-icon-background:\s*var\(--icon-teal-background\)[^}]+--section-pill-icon-colour:\s*var\(--icon-teal-colour\)/);
-  assert.match(polish, /\.section-pill-measure\s*\{[^}]+visibility:\s*hidden[^}]+pointer-events:\s*none/);
+  assert.match(polish, /\.section-pill-icon-agenda\s*\{[^}]+--section-pill-icon-background:\s*var\(--icon-teal-background\)[^}]+--section-pill-icon-colour:\s*var\(--icon-teal-colour\)/); assert.match(polish, /\.section-pill-icon-places\s*\{[^}]+--section-pill-icon-background:\s*var\(--icon-fourth-background\)[^}]+--section-pill-icon-colour:\s*var\(--icon-fourth-colour\)/);
+  assert.doesNotMatch(polish, /\.section-pill-measure/); assert.match(polish, /\.section-pill\s*\{[^}]+width:\s*fit-content[^}]+max-width:\s*100%/);
   assert.match(polish, /\.section-pill::before\s*\{\s*content:\s*none/);
   assert.match(polish, /--itinerary-pill-gradient:\s*linear-gradient\(120deg,color-mix\(in srgb,var\(--gradient-coral\) 64%,#FFFFFF\) 0%,color-mix\(in srgb,var\(--gradient-olive\) 64%,#FFFFFF\) 50%,color-mix\(in srgb,var\(--gradient-teal\) 64%,#FFFFFF\) 100%\)/);
   assert.doesNotMatch(polish, /#transportTitle\.section-pill(?:\s|\{|>)/);
@@ -356,8 +345,8 @@ test("loads the visual polish layer for richer page-wide hierarchy", async () =>
   assert.match(polish, /\.workspace-bar button:focus-visible\s*\{[^}]+outline:\s*var\(--icon-outline-width\) solid #69A79F/);
   assert.match(polish, /\.language-switch\s*\{\s*width:\s*76px/);
   assert.match(polish, /\.font-controls\s*\{\s*width:\s*80px;\s*height:\s*44px/);
-  assert.match(typography, /\.font-button:hover:not\(:disabled\)\s*\{\s*background:\s*#fff7c9;\s*color:\s*#303030/);
-  assert.match(polish, /\[data-theme="dark"\] \.font-button:hover:not\(:disabled\)\s*\{\s*background:\s*#fff7c9/);
+  assert.match(typography, /\.font-button:is\(:hover,:focus-visible,:active\):not\(:disabled\)\s*\{\s*background:\s*var\(--font-control-highlight\);\s*color:\s*var\(--font-control-highlight-text\)/);
+  assert.doesNotMatch(`${typography}\n${polish}`, /font-button[^}]+#fff7c9/);
   assert.match(polish, /\.edit-button\s*\{[^}]+width:\s*44px[^}]+height:\s*44px/);
   assert.match(polish, /@media \(max-width:600px\)[\s\S]+\.workspace-actions > \.language-switch,[\s\S]+height:\s*36px[^}]+border-radius:\s*12px/);
   assert.match(polish, /@media \(max-width:400px\)[\s\S]+\.workspace-actions > \.language-switch,[\s\S]+height:\s*32px[^}]+border-radius:\s*11px/);
@@ -369,9 +358,9 @@ test("loads the visual polish layer for richer page-wide hierarchy", async () =>
   assert.match(polish, /--icon-coral-background:\s*var\(--date-icon-background\)/);
   assert.match(polish, /--icon-olive-background:\s*var\(--duration-icon-background\)/);
   assert.match(polish, /--icon-teal-background:\s*var\(--transport-icon-background\)/);
-  assert.match(polish, /\.amenity-dot\s*\{[^}]+width:\s*4px[^}]+height:\s*4px[^}]+flex:\s*0 0 4px[^}]+background:\s*var\(--amenity-accent-colour\)/);
+  assert.doesNotMatch(polish, /\.amenity-dot/);
   assert.match(polish, /\.property-pills i,[\s\S]+width:\s*26px[^}]+height:\s*26px[^}]+border-radius:\s*50%/);
-  assert.match(polish, /\.property-pills span:nth-child\(4\) i\s*\{[^}]+--icon-surface-background:\s*var\(--icon-yellow-background\)[^}]+--icon-surface-colour:\s*var\(--icon-yellow-colour\)/);
+  assert.match(polish, /\.property-pills span:nth-child\(4\) i\s*\{[^}]+--icon-surface-background:\s*var\(--icon-fourth-background\)[^}]+--icon-surface-colour:\s*var\(--icon-fourth-colour\)/);
   assert.match(polish, /\.transport-card\.transfer \.route-line i\s*\{[^}]+--icon-surface-background:\s*var\(--icon-olive-background\)[^}]+--icon-surface-colour:\s*var\(--icon-olive-colour\)/);
   assert.match(polish, /\.transport-seats svg\s*\{[^}]+color:\s*var\(--icon-teal-colour\)/);
   assert.match(polish, /\.entry-links\s*\{[^}]+flex-wrap:\s*nowrap[^}]+gap:\s*10px/);
@@ -446,9 +435,9 @@ test("loads the visual polish layer for richer page-wide hierarchy", async () =>
   assert.match(polish, /\.day-card::before,\.saved-places::before\s*\{[^}]+width:\s*5px[^}]+background:\s*var\(--brand-gradient-vertical\)/);
   assert.doesNotMatch(polish, /\.day-card \.block-label::after/);
   assert.match(polish, /\.day-card \.block-label\s*\{[^}]+width:\s*max-content[^}]+background:\s*var\(--section-outline-gradient\)[^}]+font-size:\s*calc\(1rem \* var\(--font-scale\)\)[^}]+-webkit-text-fill-color:\s*transparent/);
-  assert.match(polish, /\.saved-places-header\s*\{[^}]+background:\s*var\(--transport-detail-gradient\)/);
-  assert.match(polish, /\.saved-places h3\s*\{[^}]+min-height:\s*44px[^}]+border:\s*3px solid transparent[^}]+border-radius:\s*999px[^}]+linear-gradient\(#FFFFFF,#FFFFFF\) padding-box[^}]+var\(--section-outline-gradient\) border-box[^}]+font-size:\s*var\(--text-body\)[^}]+font-weight:\s*var\(--font-weight-pill-title\)[^}]+letter-spacing:\s*\.12em[^}]+text-transform:\s*uppercase/);
-  assert.match(polish, /\.saved-place-group-header h4\s*\{[^}]+background:\s*var\(--section-outline-gradient\)[^}]+text-transform:\s*uppercase[^}]+-webkit-text-fill-color:\s*transparent/);
+  assert.match(polish, /\.saved-places-header\s*\{[^}]+display:\s*grid[^}]+width:\s*100%[^}]+grid-template-columns:\s*minmax\(0,1fr\)[^}]+background:\s*var\(--transport-detail-gradient\)/);
+  assert.match(polish, /\.saved-places h3\s*\{[^}]+min-height:\s*0[^}]+border:\s*0[^}]+border-radius:\s*0[^}]+background:\s*var\(--section-outline-gradient\)[^}]+background-clip:\s*text[^}]+box-shadow:\s*none[^}]+text-transform:\s*uppercase[^}]+-webkit-text-fill-color:\s*transparent/);
+  assert.doesNotMatch(polish, /\.saved-place-group-header/);
   assert.match(polish, /\.saved-place-group \.saved-grid\s*\{[^}]+grid-template-columns:\s*repeat\(3,minmax\(0,1fr\)\)/);
   assert.match(polish, /\.saved-place-group \.saved-place-card\s*\{[^}]+grid-template-columns:\s*minmax\(0,1fr\)[^}]+grid-template-areas:\s*"main"\s*"footer"[^}]+row-gap:\s*15px[^}]+padding:\s*14px 16px[^}]+border-radius:\s*18px[^}]+background:\s*var\(--card-wash-gradient\)[^}]+box-shadow:\s*0 8px 22px/);
   assert.match(polish, /\[data-theme="dark"\] \.saved-place-group \.saved-place-card\s*\{[^}]+background:\s*var\(--card-wash-gradient\)/);
@@ -475,7 +464,9 @@ test("loads the visual polish layer for richer page-wide hierarchy", async () =>
   assert.match(polish, /\.saved-place-groups\s*\{[^}]+grid-template-columns:\s*1fr/);
   assert.match(polish, /@container \(max-width:620px\)[\s\S]+\.saved-place-group \.saved-grid\s*\{\s*grid-template-columns:\s*1fr/);
   assert.doesNotMatch(polish, /\.saved-place-group \.saved-grid \.place-row\s*\{/);
-  assert.match(polish, /\.property-pills span,\.area-pill\s*\{[^}]+border:\s*0[^}]+background:\s*color-mix\(in srgb,var\(--surface\) 78%,var\(--surface-soft\)\)/);
+  assert.match(polish, /\.property-pills > \.property-pill,\.area-pill\s*\{[^}]+border:\s*0[^}]+background:\s*color-mix\(in srgb,var\(--surface\) 78%,var\(--surface-soft\)\)/);
+  assert.match(polish, /\.place-title-icon\s*\{[^}]+width:\s*18px[^}]+border:\s*0[^}]+background:\s*transparent[^}]+color:\s*var\(--icon-surface-colour\)/);
+  assert.match(polish, /\.saved-place-card:nth-child\(4n\+4\) \.place-title-icon\s*\{[^}]+--icon-surface-colour:\s*var\(--icon-fourth-colour\)/);
   assert.match(polish, /\.place-route-mode\s*\{[^}]+border:\s*0[^}]+background:\s*#fffcf0/);
   assert.match(polish, /\.place-route-modes\s*,[\s\S]+display:\s*inline-grid[^}]+width:\s*max-content[^}]+grid-auto-columns:\s*var\(--place-route-column-size, minmax\(max-content,1fr\)\)[^}]+grid-auto-flow:\s*column[^}]+gap:\s*8px/);
   assert.match(main, /window\.addEventListener\("fontscalechange", schedulePlaceRouteWidths\)/);
@@ -556,7 +547,8 @@ test("loads the visual polish layer for richer page-wide hierarchy", async () =>
   assert.match(polish, /\.attachment-summary-copy strong\s*\{[^}]+background:\s*var\(--section-title-gradient\)[^}]+-webkit-text-fill-color:\s*transparent/);
   assert.match(polish, /prefers-reduced-motion:reduce/);
   assert.doesNotMatch(polish, /\.nav-item\.is-active::after/);
-  assert.match(polish, /\.hero \.hero-stat-probe\s*\{[^}]+width:\s*max-content/);
+  assert.match(polish, /\.hero \.stat\.hero-stat-probe\s*\{[^}]+position:\s*fixed[^}]+width:\s*max-content[^}]+visibility:\s*hidden[^}]+pointer-events:\s*none/); assert.match(main, /function synchronizeHeroStatsWidth\(tripDocument\)[\s\S]+\["en-GB", "pt-BR"\][\s\S]+--hero-stat-inline-size/);
+  assert.match(polish, /\.hero \.stat\s*\{[^}]+width:\s*100%[^}]+justify-self:\s*stretch/);
   assert.match(polish, /\.hero > div:first-child\s*\{[^}]+overflow:\s*visible[^}]+border:\s*0[^}]+background:\s*transparent[^}]+box-shadow:\s*none[^}]+backdrop-filter:\s*none/);
   assert.match(polish, /#destination\s*\{[^}]+border:\s*0[^}]+outline:\s*0[^}]+background:\s*var\(--hero-title-gradient\)[^}]+box-shadow:\s*none[^}]+filter:\s*none[^}]+text-shadow:\s*none/);
   assert.match(polish, /\.hero::before\s*\{[^}]+linear-gradient\(120deg,rgba\(247,131,97,\.28\) 0%,rgba\(168,198,78,\.16\) 50%,rgba\(78,185,174,\.24\) 100%\)/);

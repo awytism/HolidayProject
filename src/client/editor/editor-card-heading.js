@@ -1,6 +1,7 @@
 import { escapeHtml } from "../utils/html.js";
 
 const CARD_TITLES = Object.freeze({
+  "travel-essentials": "Information",
   flight: "Flight",
   transfer: "Ground Transfer",
   "stay-summary": "Accommodation Summary",
@@ -10,7 +11,7 @@ const CARD_TITLES = Object.freeze({
   essentials: "Essential Information",
   link: "Link",
   day: "Day Plan",
-  "saved-places": "Other Places",
+  "saved-places": "Places",
   table: "Table",
   "image-card": "Image Card",
   "icon-list": "Icon List",
@@ -24,6 +25,7 @@ const SECTION_TITLES = Object.freeze({
   transport: "Transport",
   stay: "Accommodation",
   agenda: "Agenda",
+  places: "Other",
 });
 
 export function editorCardTitle(type, section) {

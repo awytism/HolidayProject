@@ -83,10 +83,11 @@ function migrateStay(blocks, flat, range) {
 }
 
 function migrateTransport(blocks, flat) {
-  updateTransport(blocks[0], flat, "outboundFlight", true);
-  updateTransport(blocks[1], flat, "outboundBus", false);
-  updateTransport(blocks[2], flat, "inboundBus", false);
-  updateTransport(blocks[3], flat, "inboundFlight", true);
+  const transportBlocks = blocks.filter((block) => ["flight", "transfer"].includes(block.type));
+  updateTransport(transportBlocks[0], flat, "outboundFlight", true);
+  updateTransport(transportBlocks[1], flat, "outboundBus", false);
+  updateTransport(transportBlocks[2], flat, "inboundBus", false);
+  updateTransport(transportBlocks[3], flat, "inboundFlight", true);
 }
 
 function updateTransport(block, flat, prefix, flight) {
@@ -103,10 +104,11 @@ function updateTransport(block, flat, prefix, flight) {
 
 function migratePlan(document, plan) {
   if (!Array.isArray(plan.days)) return;
-  const saved = document.sections.agenda.find((block) => block.type === "saved-places");
+  const saved = Object.values(document.sections).flat().find((block) => block.type === "saved-places");
   const range = dateRange(document.meta);
   const days = plan.days.map((item, index) => legacyDay(item, index, range));
-  document.sections.agenda = [...days, ...(saved ? [legacySaved(saved, plan.otherPlaces)] : [])];
+  document.sections.agenda = days;
+  document.sections.places = saved ? [legacySaved(saved, plan.otherPlaces)] : [];
 }
 
 function legacyDay(item, index, range) {

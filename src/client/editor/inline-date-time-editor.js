@@ -155,7 +155,7 @@ export function createInlineDateTimeEditor({ store, language, preferences, rende
       });
     } else {
       const date = String(values.get("date") ?? "");
-      if (!date) {
+      if (isMissingRequiredDate(date, active.descriptor)) {
         showError("Choose a valid date");
         return;
       }
@@ -280,7 +280,12 @@ export function createInlineDateTimeEditor({ store, language, preferences, rende
     if (target.dataset.inlineDateAction === "hero") return { kind: "hero", label: "Trip Dates" };
     const descriptor = describeBlockTarget(target, target.dataset.inlineDateField);
     if (!descriptor) return null;
-    return { ...descriptor, kind: "block", label: target.dataset.inlineDateLabel || "Agenda Date" };
+    return {
+      ...descriptor,
+      kind: "block",
+      label: target.dataset.inlineDateLabel || "Agenda Date",
+      optional: target.dataset.inlineDateOptional !== undefined,
+    };
   }
 
   function describeBlockTarget(target, field) {
@@ -332,7 +337,7 @@ export function createInlineDateTimeEditor({ store, language, preferences, rende
     const label = (value) => escapeHtml(language.translate(value));
     const fields = descriptor.kind === "hero"
       ? `<div class="inline-date-range"><label><span>${label("Start Date")}</span><input type="date" name="startDate" value="${escapeHtml(current.startDate)}" required></label><label><span>${label("End Date")}</span><input type="date" name="endDate" value="${escapeHtml(current.endDate)}" required></label></div>`
-      : `<label><span>${label("Date")}</span><input type="date" name="date" value="${escapeHtml(current.date)}" required></label>`;
+      : `<label><span>${label("Date")}</span><input type="date" name="date" value="${escapeHtml(current.date)}" ${descriptor.optional ? "" : "required"}></label>`;
     const formatChoice = !allowsDateFormatSelection(descriptor)
       ? ""
       : `<label><span>${label("Date Format")}</span><select name="dateFormat">${dateFormatOptions(label)}</select></label>`;
@@ -386,6 +391,9 @@ export function allowsDateFormatSelection(descriptor) {
   return descriptor?.kind !== "block" || descriptor?.section !== "agenda";
 }
 
+function isMissingRequiredDate(date, descriptor) {
+  return !date && !descriptor.optional;
+}
 function restoreAttribute(target, name, value) {
   if (value) target.setAttribute(name, value);
   else target.removeAttribute(name);

@@ -39,12 +39,13 @@ test("edits table shape while preserving cell alignment", () => {
 });
 
 test("names every editing card by its content type with section fallbacks", () => {
+  assert.equal(editorCardTitle("travel-essentials", "transport"), "Information");
   assert.equal(editorCardTitle("flight", "transport"), "Flight");
   assert.equal(editorCardTitle("transfer", "transport"), "Ground Transfer");
   assert.equal(editorCardTitle("stay-summary", "stay"), "Accommodation Summary");
   assert.equal(editorCardTitle("stay-amenities", "stay"), "Listing Highlights");
   assert.equal(editorCardTitle("day", "agenda"), "Day Plan");
-  assert.equal(editorCardTitle("saved-places", "agenda"), "Other Places");
+  assert.equal(editorCardTitle("saved-places", "places"), "Places");
   assert.equal(editorCardTitle("unknown", "agenda"), "Agenda");
   assert.equal(editorCardTitle("unknown", "unknown"), "Content");
 });
@@ -62,9 +63,10 @@ test("renders one descriptive heading above every visible editing card", () => {
     transport: document.sections.transport.length,
     stay: document.sections.stay.filter(({ type }) => !["stay-anatomy", "essentials"].includes(type)).length,
     agenda: document.sections.agenda.length,
+    places: document.sections.places.length,
   };
 
-  for (const section of ["transport", "stay", "agenda"]) {
+  for (const section of ["transport", "stay", "agenda", "places"]) {
     activeSection = section;
     renderBlockEditor(root, store, null, section);
     assert.equal((root.innerHTML.match(/class="editor-card-heading"/g) ?? []).length, visibleCounts[section]);
@@ -73,7 +75,7 @@ test("renders one descriptive heading above every visible editing card", () => {
   activeSection = "transport";
   renderBlockEditor(root, store, null, activeSection);
   assert.match(root.innerHTML, /class="editor-card-heading"><h3>Flight<\/h3><button class="editor-card-delete/);
-  assert.match(root.innerHTML, /class="editor-card-heading"><h3>Ground Transfer<\/h3><button class="editor-card-delete/);
+  assert.doesNotMatch(root.innerHTML, /class="editor-card-heading"><h3>Ground Transfer<\/h3>/);
   assert.equal((root.innerHTML.match(/class="editor-card-delete/g) ?? []).length, document.sections.transport.length);
 
   activeSection = "stay";
@@ -85,7 +87,10 @@ test("renders one descriptive heading above every visible editing card", () => {
   activeSection = "agenda";
   renderBlockEditor(root, store, null, activeSection);
   assert.match(root.innerHTML, /class="editor-card-heading"><h3>Day Plan<\/h3><\/header>/);
-  assert.match(root.innerHTML, /class="editor-card-heading"><h3>Other Places<\/h3><\/header>/);
+
+  activeSection = "places";
+  renderBlockEditor(root, store, null, activeSection);
+  assert.match(root.innerHTML, /class="editor-card-heading"><h3>Places<\/h3><\/header>/);
 });
 
 test("regenerates nested IDs when duplicating and instantiating templates", () => {
@@ -137,6 +142,26 @@ test("persists supported block widths", () => {
   assert.equal(validateDocument(document), true);
 });
 
+test("offers every card exactly one-third, one-half, and full width choices", () => {
+  const document = createDefaultDocument();
+  const root = { innerHTML: "", querySelector: () => null, querySelectorAll: () => [] };
+  const store = {
+    getState: () => ({ activeSection: "transport", editing: true }),
+    getDocument: () => document,
+  };
+
+  renderBlockEditor(root, store, null, "transport");
+  const choices = [...root.innerHTML.matchAll(/<option value="(\d+)"/g)].map((match) => match[1]);
+  assert.deepEqual([...new Set(choices)], ["4", "6", "12"]);
+  assert.doesNotMatch(root.innerHTML, /<option value="8"/);
+  assert.match(root.innerHTML, /<option value="4"[^>]*>1\/3<\/option>/);
+  assert.match(root.innerHTML, /<option value="6"[^>]*>1\/2<\/option>/);
+  assert.match(root.innerHTML, /<option value="12" selected>Full<\/option>/);
+
+  document.sections.transport.find((entry) => entry.type === "flight").layout = { span: 8 };
+  renderBlockEditor(root, store, null, "transport");
+  assert.match(root.innerHTML, /class="editor-block block-span-12 block-type-flight"/);
+});
 test("resolves horizontal drops using the target midpoint", () => {
   const bounds = { left: 100, right: 300, top: 50, bottom: 250, width: 200, height: 200 };
   assert.equal(resolveDropPosition({ clientX: 299, clientY: 150 }, bounds), "after");

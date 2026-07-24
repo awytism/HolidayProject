@@ -1,12 +1,32 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { initializePreferences, normalizePalette } from "../../src/client/app/preferences.js";
+import { CUSTOM_PALETTE_PLACEHOLDER, initializePreferences, normalizeCustomPalette, normalizeFontFamily, normalizePalette } from "../../src/client/app/preferences.js";
 import { initializeDateTimePreferences } from "../../src/client/app/date-time-preferences.js";
 
 test("normalizes palette preferences to the available site palette", () => {
   assert.equal(normalizePalette("coral-olive-teal"), "coral-olive-teal");
+  assert.equal(normalizePalette("periwinkle-dream"), "periwinkle-dream");
+  assert.equal(normalizePalette("custom-palette"), "custom-palette");
+  for (const removed of ["fresh-lagoon", "sunset-glow", "green-blue", "vivid-journey", "coastal-calm", "gramado-garden", "retro-arches"]) {
+    assert.equal(normalizePalette(removed), "coral-olive-teal");
+  }
   assert.equal(normalizePalette("unknown"), "coral-olive-teal");
   assert.equal(normalizePalette(null), "coral-olive-teal");
+});
+
+test("normalizes exactly five safe custom hex colours", () => {
+  assert.deepEqual(normalizeCustomPalette(["c73866", "#fe676e", "FD8F52", "#ffbd71", "ffdca2"]), CUSTOM_PALETTE_PLACEHOLDER);
+  assert.deepEqual(normalizeCustomPalette(JSON.stringify(CUSTOM_PALETTE_PLACEHOLDER)), CUSTOM_PALETTE_PLACEHOLDER);
+  assert.equal(normalizeCustomPalette(["#FFFFFF"]), null);
+  assert.equal(normalizeCustomPalette(["#FFFFFF", "#000000", "not-a-colour", "#123456", "#ABCDEF"]), null);
+  assert.equal(normalizeCustomPalette("not-json"), null);
+});
+
+test("normalizes font family preferences to the five available choices", () => {
+  for (const font of ["abeezee", "cause", "google-sans", "inter", "life-savers"]) {
+    assert.equal(normalizeFontFamily(font), font);
+  }
+  assert.equal(normalizeFontFamily("unknown"), "google-sans");
 });
 
 test("applies and updates reference-palette theme preferences when storage throws", (context) => {
@@ -33,7 +53,7 @@ test("applies and updates reference-palette theme preferences when storage throw
   };
 
   assert.doesNotThrow(() => initializePreferences({ theme }, storage));
-  assert.deepEqual(root.dataset, { palette: "coral-olive-teal", theme: "dark" });
+  assert.deepEqual(root.dataset, { palette: "coral-olive-teal", font: "google-sans", theme: "dark" });
   events.theme();
   assert.equal(root.dataset.theme, "light");
   assert.equal(meta.content, "#fbf7e8");

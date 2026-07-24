@@ -10,7 +10,7 @@ import { formatTravelDateRangeForLocale } from "../../src/shared/date-utils.mjs"
 
 test("uses calendar inputs for every structured trip date and derives view labels", async () => {
   const document = createDefaultDocument();
-  const transport = document.sections.transport[0];
+  const transport = document.sections.transport.find((block) => block.type === "flight");
   const stay = document.sections.stay.find((block) => block.type === "stay-summary");
   const agenda = document.sections.agenda.find((block) => block.type === "day");
   const agendaWithMeals = document.sections.agenda.find((block) => (
@@ -67,14 +67,14 @@ test("uses calendar inputs for every structured trip date and derives view label
 
   agenda.data.meals = { breakfast: [], lunch: [], dinner: [] };
   const emptyMealsView = agendaConfig.render(agenda, false);
-  assert.equal(countMatches(emptyMealsView, /Nenhuma refeição planejada\./g), 1);
-  assert.match(emptyMealsView, /<div class="meal-grid"><p class="day-note meal-empty-banner">Nenhuma refeição planejada\.<\/p><\/div>/);
+  assert.equal(countMatches(emptyMealsView, /No meals planned\./g), 1);
+  assert.match(emptyMealsView, /<div class="meal-grid"><p class="day-note meal-empty-banner">No meals planned\.<\/p><div class="inline-entry-add-group">/);
   assert.doesNotMatch(emptyMealsView, /class="meal-group"/);
   assert.doesNotMatch(emptyMealsView, /food-row-open|>Em aberto</);
   assert.equal(countMatches(agendaOpenMealView, /class="meal-group"/g), 3);
   assert.equal(countMatches(agendaOpenMealView, /class="food-row food-row-open"/g), 1);
   assert.match(agendaOpenMealView, /<span class="open">Em aberto<\/span>/);
-  assert.doesNotMatch(agendaOpenMealView, /meal-empty-banner|Nenhuma refeição planejada/);
+  assert.doesNotMatch(agendaOpenMealView, /meal-empty-banner|No meals planned/);
   const agendaMealsMarkup = mealMarkup(agendaMealsView);
   const plannedOptionCount = mealWithRouteCount(agendaWithMeals);
   assert.equal(countMatches(agendaMealsMarkup, /class="meal-card-footer has-route"/g), plannedOptionCount);
@@ -231,14 +231,15 @@ test("hero duration and transport legs remain calculated and non-editable", asyn
     readFile("src/client/main.js", "utf8"),
     readFile("public/index.html", "utf8"),
   ]);
-  assert.match(main, /const stats = deriveTripStats\(tripDocument\)/);
+  assert.match(main, /const stats = displayTripStats\(tripDocument\)/);
+  assert.match(main, /return deriveTripStats\(tripDocument\)/);
   assert.match(main, /elements\.tripDays\.textContent = formatHeroCount\(stats\.days, "day", "days"\)/);
   assert.match(main, /elements\.tripLegs\.textContent = formatHeroCount\(stats\.legs, "leg", "legs"\)/);
   assert.match(main, /synchronizeTripStats\(tripDocument\)/);
   assert.match(main, /for \(const element of \[elements\.tripDays, elements\.tripLegs\]\)/);
   assert.match(html, /<small data-inline-static>Date<\/small>/);
-  assert.match(html, /<small data-inline-static>Duration<\/small><strong id="tripDays" data-inline-static>9 days<\/strong>/);
-  assert.match(html, /<small data-inline-static>Transport<\/small><strong id="tripLegs" data-inline-static>4 legs<\/strong>/);
+  assert.match(html, /<small data-inline-static>Duration<\/small><strong id="tripDays" data-inline-static>0 days<\/strong>/);
+  assert.match(html, /<small data-inline-static>Transport<\/small><strong id="tripLegs" data-inline-static>0 legs<\/strong>/);
   assert.doesNotMatch(html, /<strong><span id="trip(?:Days|Legs)">/);
   assert.match(main, /renderMeta\(tripDocument, false\)/);
   assert.doesNotMatch(main, /updateMetaDate|document\.meta\.days = String\(days\)/);

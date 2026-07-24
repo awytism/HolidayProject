@@ -76,7 +76,9 @@ test("renders only immutable trusted SVG entries", () => {
   assert.equal(TRUSTED_ICON_KEYS.length, Object.keys(ICON_REGISTRY).length);
   assert.match(renderIcon("hot-tub"), /^<svg [^>]+aria-hidden="true"[^>]*>/);
   assert.match(renderIcon("priority-star"), /<path d="m12 2\.9 2\.82 5\.72/);
-  assert.match(renderIcon("toilet"), /<path d="M9 3a3 3 0 0 1 6 0/);
+  assert.match(renderIcon("pillow"), /<path d="M6 5c1\.5 1 3\.5 1\.5 6 1\.5/);
+  assert.doesNotMatch(renderIcon("pillow"), /<circle/);
+  assert.match(renderIcon("toilet"), /<path d="M14 12V4a2 2 0 0 1 2-2/);
   assert.equal(renderIcon("<img src=x onerror=alert(1)>") , "");
   assert.equal(renderIcon({ toString: () => "home" }), "");
   assert.ok(!renderIcon("home").includes("script"));

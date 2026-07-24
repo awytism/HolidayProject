@@ -1,7 +1,7 @@
 .font-controls { display: inline-flex; overflow: hidden; border: 1px solid var(--line); border-radius: 11px; background: var(--surface); }
 .font-button { display: grid; min-width: 36px; height: 40px; place-items: center; padding: 0 8px; border: 0; background: transparent; color: var(--text); font-size: .875rem; font-weight: 700; line-height: 1; transition: background-color var(--motion-fast) var(--ease-standard),color var(--motion-fast) var(--ease-standard),transform var(--motion-fast) var(--ease-emphasized); }
 .font-button + .font-button { border-left: 1px solid var(--line); }
-.font-button:hover:not(:disabled) { background: #fff7c9; color: #303030; }
+.font-button:is(:hover,:focus-visible,:active):not(:disabled) { background: var(--font-control-highlight); color: var(--font-control-highlight-text); }
 .font-button:disabled { color: var(--faint); cursor: not-allowed; }
 .provider small,.route-endpoint small,.detail-strip,.stay-dates small,.meal small,.place-copy small { font-size: var(--text-caption); }
 .section-pill,.stay-copy > small,.stay-title-row small,.amenity-card header small,.anatomy-card small,.distance-card header small,.amenity-group h4,.block-label,.day-header small,.meal-group h4 { font-size: var(--text-category-title); font-weight: 700; }

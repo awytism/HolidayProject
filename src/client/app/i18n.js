@@ -1,4 +1,7 @@
 import { EDITOR_PAIRS } from "./editor-i18n.js";
+import { PREFERENCE_PAIRS } from "./preference-i18n.js";
+import { LEGACY_PORTUGUESE_ALIASES } from "./legacy-portuguese-i18n.js";
+import { createCanonicalTranslation } from "./canonical-translation.js";
 import { updateLanguageButtonStates } from "./language-controls.js";
 import { MEAL_CUISINE_PAIRS, PLACE_DESCRIPTION_PAIRS } from "../../shared/place-descriptions.mjs";
 
@@ -10,16 +13,17 @@ const PAIRS = [
   ...[...PLACE_DESCRIPTION_PAIRS, ...MEAL_CUISINE_PAIRS].map(([, english, portuguese]) => [english, portuguese]),
   ["Travel Plan", "Travel Plan"],
   ["Holidays", "Holidays"],
-  ["Go to Transport", "Ir para Transporte"],
+  ["Go to Transport", "Ir para transporte"],
   ["Trip sections", "Seções da viagem"],
   ["Itinerary dates", "Datas do roteiro"],
   ["Agenda dates", "Datas da agenda"],
   ["Transport", "Transporte"],
   ["Accommodation", "Hospedagem"],
-  ["Itinerary", "Roteiro"],
-  ["Our Next Adventure", "Nossa Próxima Aventura"],
+  ["Transit", "Transporte"],
+  ["Our Next Adventure", "Nossa próxima aventura"],
   ["Duration", "Duração"],
   ["Agenda", "Agenda"],
+
   ["Edit", "Editar"],
   ["Save", "Salvar"],
   ["Cancel", "Cancelar"],
@@ -30,17 +34,7 @@ const PAIRS = [
   ["This trip was changed elsewhere. Reload before saving.", "Esta viagem foi alterada em outro lugar. Recarregue antes de salvar."],
   ["Your editing session expired. Start editing again.", "Sua sessão de edição expirou. Comece a editar novamente."],
   ["Local edits loaded. Edit and save to migrate them.", "Edições locais carregadas. Edite e salve para migrá-las."],
-  ["Text size controls", "Controles de tamanho do texto"],
-  ["Decrease text size", "Diminuir o tamanho do texto"],
-  ["Increase text size", "Aumentar o tamanho do texto"],
-  ["Text size: 100%", "Tamanho do texto: 100%"],
-  ["Colour palette", "Paleta de cores"],
-  ["Palette options", "Opções de paleta"],
-  ["Open colour palette", "Abrir paleta de cores"],
-  ["Close colour palette", "Fechar paleta de cores"],
-  ["Choose a palette", "Escolha uma paleta"],
-  ["Coral, Olive & Teal", "Coral, Oliva e Azul-petróleo"],
-  ["Current palette", "Paleta atual"],
+  ...PREFERENCE_PAIRS,
   ["Enable dark mode", "Ativar modo escuro"],
   ["Enable light mode", "Ativar modo claro"],
   ["Scroll to top", "Voltar ao topo"],
@@ -51,7 +45,7 @@ const PAIRS = [
   ["days", "dias"], ["1 day", "1 dia"],
   ["legs", "trechos"], ["1 leg", "1 trecho"],
   ["nights", "noites"],
-  ["Entire Holiday Home", "Casa de Férias Inteira"],
+  ["Entire Holiday Home", "Casa de férias inteira"],
   ["Amazing House with Hot Tub and Bikes", "Incrível Casa com Hidro e Bikes"],
   ["3 bedrooms", "3 quartos"],
   ["4 beds", "4 camas"],
@@ -62,14 +56,14 @@ const PAIRS = [
   ["Amenities", "Comodidades"],
   ["From Casa Sol da Serra", "A partir da Casa Sol da Serra"],
   ["From Casa do Sol", "A partir da Casa do Sol"],
-  ["Accommodation Layout", "Distribuição da Hospedagem"],
-  ["Listing Highlights", "Destaques do Anúncio"],
-  ["Sleep and Laundry", "Quartos e Lavanderia"],
-  ["Bath and Spa", "Banho e Spa"],
-  ["Home Comforts", "Confortos da Casa"],
-  ["Work and Play", "Trabalho e Lazer"],
-  ["Outdoor Living", "Vida ao Ar Livre"],
-  ["Kitchen & Dining", "Cozinha e Refeições"],
+  ["Accommodation Layout", "Distribuição da hospedagem"],
+  ["Listing Highlights", "Destaques do anúncio"],
+  ["Sleep and Laundry", "Quartos e lavanderia"],
+  ["Bath and Spa", "Banho e spa"],
+  ["Home Comforts", "Confortos da casa"],
+  ["Work and Play", "Trabalho e lazer"],
+  ["Outdoor Living", "Vida ao ar livre"],
+  ["Kitchen & Dining", "Cozinha e refeições"],
   ["Fully equipped kitchen", "Cozinha completa"],
   ["Oven, hob and microwave", "Forno, cooktop e micro-ondas"],
   ["Coffee and tea station", "Estação de café e chá"],
@@ -131,7 +125,7 @@ const PAIRS = [
   ["Stovetop", "Cooktop"],
   ["Kitchenware", "Utensílios de cozinha"],
   ["Dining area", "Área de refeições"],
-  ["Bedroom & Laundry", "Quartos e Lavanderia"],
+  ["Bedroom & Laundry", "Quartos e lavanderia"],
   ["Linens, wardrobe & clothes rack", "Roupa de cama, guarda-roupa e cabideiro"],
   ["Bed linen, wardrobe & clothes storage", "Roupa de cama, guarda-roupa e espaço para roupas"],
   ["Bed linens, wardrobes & clothes storage", "Roupas de cama, guarda-roupas e espaço para roupas"],
@@ -149,7 +143,7 @@ const PAIRS = [
   ["Ironing facilities", "Comodidades para passar roupa"],
   ["Iron", "Ferro de passar"],
   ["Washing machine", "Máquina de lavar"],
-  ["Bathroom & Wellness", "Banheiro e Bem-Estar"],
+  ["Bathroom & Wellness", "Banheiro e bem-estar"],
   ["Private bathroom, bath & shower", "Banheiro privativo, banheira e chuveiro"],
   ["Two private bathrooms with bath, shower & additional toilet", "Dois banheiros privativos com banheira, chuveiro e banheiro adicional"],
   ["Two private bathrooms", "Dois banheiros privativos"],
@@ -168,7 +162,7 @@ const PAIRS = [
   ["Hairdryer", "Secador de cabelo"],
   ["Bath", "Banheira"],
   ["Spa lounge / relaxation area", "Lounge do spa / área de relaxamento"],
-  ["Living & Comfort", "Sala e Conforto"],
+  ["Living & Comfort", "Sala e conforto"],
   ["Sofa & seating area", "Sofá e área de estar"],
   ["Sofa & comfortable seating area", "Sofá e área de estar confortável"],
   ["Fireplace & heating", "Lareira e aquecimento"],
@@ -184,7 +178,7 @@ const PAIRS = [
   ["Smoke-free property with non-smoking rooms", "Propriedade livre de fumo com quartos para não fumantes"],
   ["Smoke-free home with non-smoking rooms", "Casa livre de fumo com quartos para não fumantes"],
   ["Smoke-free home", "Casa livre de fumo"],
-  ["Media & Technology", "Mídia e Tecnologia"],
+  ["Media & Technology", "Mídia e tecnologia"],
   ["Free Wi-Fi throughout", "Wi-Fi gratuito em todas as áreas"],
   ["Streaming service (like Netflix)", "Serviço de streaming (como Netflix)"],
   ["Streaming services such as Netflix", "Serviços de streaming como Netflix"],
@@ -196,7 +190,7 @@ const PAIRS = [
   ["Satellite channels", "Canais via satélite"],
   ["Pay-per-view channels", "Canais pay-per-view"],
   ["Video games", "Videogames"],
-  ["Outdoors & Views", "Áreas Externas e Vistas"],
+  ["Outdoors & Views", "Áreas externas e vistas"],
   ["Garden, terrace & sun deck", "Jardim, terraço e solário"],
   ["Landscaped garden, terrace & sun deck", "Jardim paisagístico, terraço e solário"],
   ["Balcony, patio & outdoor furniture", "Varanda, pátio e móveis externos"],
@@ -212,29 +206,29 @@ const PAIRS = [
   ["Garden", "Jardim"],
   ["Inner courtyard view", "Vista para o pátio interno"],
   ["Landmark view", "Vista para ponto turístico"],
-  ["Family & Play", "Família e Lazer"],
+  ["Family & Play", "Família e lazer"],
   ["Family rooms", "Quartos para famílias"],
   ["Children's high chair", "Cadeira alta infantil"],
   ["Outdoor play equipment for kids", "Equipamentos de lazer ao ar livre para crianças"],
   ["Indoor play area", "Área de lazer interna"],
   ["Board games / puzzles", "Jogos de tabuleiro / quebra-cabeças"],
   ["Video games", "Videogames"],
-  ["Parking, Transport & Activities", "Estacionamento, Transporte e Atividades"],
+  ["Parking, Transport & Activities", "Estacionamento, transporte e atividades"],
   ["Free private parking on site (no reservation needed)", "Estacionamento privativo gratuito no local (sem necessidade de reserva)"],
   ["Parking garage", "Garagem"],
   ["Bike tours", "Passeios de bicicleta"],
   ["Bicycle rental", "Aluguel de bicicletas"],
-  ["Pets", "Animais de Estimação"],
+  ["Pets", "Animais de estimação"],
   ["Pets allowed on request (charges may apply)", "Animais de estimação permitidos mediante solicitação (pode haver custos)"],
   ["Pet bowls", "Tigelas para animais de estimação"],
   ["Pet basket", "Cama para animais de estimação"],
-  ["Property, Accessibility & Services", "Imóvel, Acessibilidade e Serviços"],
+  ["Property, Accessibility & Services", "Imóvel, acessibilidade e serviços"],
   ["Upper floors accessible by stairs only", "Andares superiores acessíveis somente por escadas"],
   ["Detached / semi-detached property", "Imóvel independente / geminado"],
   ["Invoice provided", "Nota fiscal fornecida"],
   ["Key access", "Acesso com chave"],
   ["English, Spanish and Portuguese spoken", "Idiomas falados: inglês, espanhol e português"],
-  ["Household Essentials", "Itens Essenciais da Casa"],
+  ["Household Essentials", "Itens essenciais da casa"],
   ["Dishes and cutlery", "Louças e talheres"],
   ["Cooking basics", "Itens básicos para cozinhar"],
   ["Stove", "Cooktop"],
@@ -255,13 +249,13 @@ const PAIRS = [
   ["Shampoo", "Xampu"],
   ["Conditioner", "Condicionador"],
   ["Body soap", "Sabonete corporal"],
-  ["Indoor Comfort", "Conforto Interno"],
+  ["Indoor Comfort", "Conforto interno"],
   ["Indoor fireplace", "Lareira interna"],
   ["Heating", "Aquecimento"],
   ["Air conditioning", "Ar-condicionado"],
   ["Game console", "Console de jogos"],
   ["Dedicated workspace", "Espaço de trabalho"],
-  ["Outdoor Spaces", "Áreas Externas"],
+  ["Outdoor Spaces", "Áreas externas"],
   ["Balcony", "Varanda"],
   ["Garden view", "Vista para o jardim"],
   ["Backyard", "Quintal"],
@@ -273,30 +267,31 @@ const PAIRS = [
   ["Direct", "Direto"],
   ["To confirm", "A confirmar"],
   ["Arrival", "Chegada"],
-  ["Water Park", "Parque Aquático"],
-  ["Historic Centre", "Centro Histórico"],
-  ["Parks & Plazas", "Parques e Praças"],
-  ["Open/Rest Day", "Dia Livre/Descanso"],
+  ["Water Park", "Parque aquático"],
+  ["Historic Centre", "Centro histórico"],
+  ["Parks & Plazas", "Parques e praças"],
+  ["Open/Rest Day", "Dia livre/descanso"],
   ["Gardens", "Jardins"],
-  ["Lakeside, Chocolates & Beer", "Lago, Chocolates e Cerveja"],
-  ["Snow Day", "Dia na Neve"],
+  ["Lakeside, Chocolates & Beer", "Lago, chocolates e cerveja"],
+  ["Snow Day", "Dia na neve"],
   ["Departure", "Partida"],
   ["Gramado Picks", "Dicas de Gramado"],
-  ["Other Places", "Outros Lugares"],
-  ["Other Places of Interest", "Outros Lugares de Interesse"],
-  ["Local Shortlist", "Seleção Local"],
+  ["Other Places", "Outros lugares"],
+  ["Other Places of Interest", "Outros lugares de interesse"],
+  ["Local Shortlist", "Seleção local"],
   ["Restaurants and landmarks worth keeping close.", "Restaurantes e pontos turísticos para ter sempre à mão."],
   ["Restaurants", "Restaurantes"],
   ["Restaurant", "Restaurante"],
-  ["Landmarks", "Pontos Turísticos"],
+  ["Landmarks", "Pontos turísticos"],
   ["Landmark", "Ponto Turístico"],
   ["Category", "Categoria"],
   ["Place category", "Categoria do lugar"],
   ["No saved places yet.", "Nenhum lugar salvo ainda."],
-  ["+ Add Place", "+ Adicionar Lugar"],
+  ["+ Add Place", "+ Adicionar lugar"],
   ["Place(s)", "Lugar(es)"],
   ["Meals", "Refeições"],
-  ["Breakfast", "Café da Manhã"],
+  ["Meal(s)", "Refeição(ões)"],
+  ["Breakfast", "Café da manhã"],
   ["Lunch", "Almoço"],
   ["Dinner", "Jantar"],
   ["Notes:", "Observações:"],
@@ -324,7 +319,7 @@ const PAIRS = [
   ["Attachment downloaded securely.", "Anexo baixado com segurança."],
   ["Unlock to view", "Desbloqueie para visualizar"],
   ["No attachments yet.", "Nenhum anexo ainda."],
-  ["Add Attachment", "Adicionar Anexo"],
+  ["Add Attachment", "Adicionar anexo"],
   ["Up to 50 MB per file", "Até 50 MB por arquivo"],
   ["file", "arquivo"],
   ["files", "arquivos"],
@@ -363,36 +358,36 @@ const PAIRS = [
   ["Website URL", "URL do site"],
   ["Cover image", "Imagem de capa"],
   ["Close", "Fechar"],
-  ["Cover Image", "Imagem de Capa"],
-  ["Choose an Image", "Escolher uma Imagem"],
+  ["Cover Image", "Imagem de capa"],
+  ["Choose an Image", "Escolher uma imagem"],
   ["Upload JPEG, PNG or WebP", "Enviar JPEG, PNG ou WebP"],
   ["Maximum 8 MB and 20 megapixels", "Máximo de 8 MB e 20 megapixels"],
   ["or", "ou"],
-  ["Image HTTPS URL", "URL HTTPS da Imagem"],
-  ["Alternative Text", "Texto Alternativo"],
+  ["Image HTTPS URL", "URL HTTPS da imagem"],
+  ["Alternative Text", "Texto alternativo"],
   ["Describe the image", "Descreva a imagem"],
-  ["Focus Position", "Posição do Foco"],
+  ["Focus Position", "Posição do foco"],
   ["Centre", "Centro"],
   ["Top", "Topo"],
   ["Bottom", "Base"],
   ["Left", "Esquerda"],
   ["Right", "Direita"],
   ["Remove", "Remover"],
-  ["Use Image", "Usar Imagem"],
+  ["Use Image", "Usar imagem"],
   ["Uploading...", "Enviando..."],
   ["Enter an HTTPS image URL or choose a file", "Digite uma URL HTTPS de imagem ou escolha um arquivo"],
   ["The image must be 8 MB or smaller", "A imagem deve ter no máximo 8 MB"],
   ["Cover image removed. Save your changes to keep this update.", "Imagem de capa removida. Salve as alterações para manter esta atualização."],
   ["Cover image applied. Save your changes to keep it.", "Imagem de capa aplicada. Salve as alterações para mantê-la."],
-  ["Provider Image", "Imagem da Companhia"],
-  ["Add Provider Image", "Adicionar Imagem da Companhia"],
-  ["Change Provider Image", "Trocar Imagem da Companhia"],
-  ["Origin Image", "Imagem da Origem"],
-  ["Destination Image", "Imagem do Destino"],
-  ["Add Origin Image", "Adicionar Imagem da Origem"],
-  ["Change Origin Image", "Trocar Imagem da Origem"],
-  ["Add Destination Image", "Adicionar Imagem do Destino"],
-  ["Change Destination Image", "Trocar Imagem do Destino"],
+  ["Provider Image", "Imagem da companhia"],
+  ["Add Provider Image", "Adicionar imagem da companhia"],
+  ["Change Provider Image", "Trocar imagem da companhia"],
+  ["Origin Image", "Imagem da origem"],
+  ["Destination Image", "Imagem do destino"],
+  ["Add Origin Image", "Adicionar imagem da origem"],
+  ["Change Origin Image", "Trocar imagem da origem"],
+  ["Add Destination Image", "Adicionar imagem do destino"],
+  ["Change Destination Image", "Trocar imagem do destino"],
   ["Google Maps URL", "URL do Google Maps"],
   ["Content block controls", "Controles do bloco de conteúdo"],
   ["Content block width", "Largura do bloco de conteúdo"],
@@ -416,9 +411,12 @@ const PAIRS = [
   ["Move up", "Mover para cima"],
   ["Move down", "Mover para baixo"],
   ["Places", "Lugares"],
-  ["Add place", "Adicionar Lugar"],
-  ["Add item", "Adicionar Item"],
-  ["Add category", "Adicionar Categoria"],
+  ["Add place", "Adicionar lugar"],
+  ["Add item", "Adicionar item"],
+  ["Add category", "Adicionar categoria"],
+  ["Add information", "Adicionar informação"],
+  ["Remove information", "Remover informação"],
+  ["Detail", "Detalhe"],
   ["Custom Highlight", "Destaque Personalizado"],
   ["New Table", "Nova Tabela"],
   ["Language", "Idioma"],
@@ -426,13 +424,17 @@ const PAIRS = [
   ["Close display options", "Fechar opções de visualização"],
   ["Text size", "Tamanho do texto"],
   ["Appearance", "Aparência"],
-  ["British English", "Inglês Britânico"],
-  ["Brazilian Portuguese", "Português Brasileiro"],
+  ["British English", "Inglês britânico"],
+  ["Brazilian Portuguese", "Português brasileiro"],
 ];
 
 const TO_PORTUGUESE = new Map(PAIRS);
-const TO_ENGLISH = new Map(PAIRS.map(([english, portuguese]) => [portuguese, english]));
+const TO_ENGLISH = new Map([
+  ...PAIRS.map(([english, portuguese]) => [portuguese, english]),
+  ...LEGACY_PORTUGUESE_ALIASES,
+]);
 const ATTRIBUTES = ["aria-label", "title", "placeholder", "data-tooltip"];
+const CANONICAL_TRANSLATION = createCanonicalTranslation(translateText);
 const EDITABLE_VALUE_SELECTOR = [
   '[data-block-field]:not([type="date"]):not([type="time"]):not([type="url"])',
   "[data-amenity-group-label]",
@@ -480,10 +482,14 @@ function translateEmbedded(content, map) {
   let translated = content;
   const replacements = [...map.entries()].filter(([source]) => EMBEDDED_PHRASES.has(source));
   for (const [source, destination] of replacements) {
-    if (!translated.includes(source)) continue;
-    translated = translated.replaceAll(source, destination);
+    const wholePhrase = new RegExp(`(?<![\\p{L}\\p{N}_])${escapeRegExp(source)}(?![\\p{L}\\p{N}_])`, "gu");
+    translated = translated.replace(wholePhrase, destination);
   }
   return translated;
+}
+
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
 }
 
 function translateDynamic(value, locale) {
@@ -566,7 +572,7 @@ function localizeTree(root, locale) {
 
 function localizeEditableValues(root, locale) {
   for (const control of root.body.querySelectorAll(EDITABLE_VALUE_SELECTOR)) {
-    const translated = translateText(control.value, locale);
+    const translated = CANONICAL_TRANSLATION.editableValue(control, locale);
     if (translated !== control.value) control.value = translated;
   }
 }
@@ -582,26 +588,18 @@ function localizeTextNodes(root, locale) {
 
 function localizeTextNode(node, locale) {
   if (node.parentElement?.closest("script, style, [data-no-translate]")) return;
-  const translated = translateText(node.nodeValue, locale);
+  const translated = CANONICAL_TRANSLATION.text(node, locale);
   if (translated !== node.nodeValue) node.nodeValue = translated;
 }
 
 function localizeAttributes(root, locale) {
   for (const element of root.body.querySelectorAll(ATTRIBUTES.map((attribute) => `[${attribute}]`).join(","))) {
-    for (const attribute of ATTRIBUTES) localizeAttribute(element, attribute, locale);
+    for (const attribute of ATTRIBUTES) CANONICAL_TRANSLATION.attribute(element, attribute, locale);
   }
 }
 
-function localizeAttribute(element, attribute, locale) {
-  if (element.closest("[data-no-translate]")) return;
-  if (!element.hasAttribute(attribute)) return;
-  const value = element.getAttribute(attribute);
-  const translated = translateText(value, locale);
-  if (translated !== value) element.setAttribute(attribute, translated);
-}
-
 function localizeMetadata(root, locale) {
-  const title = "Travel Plan | Gramado 2026";
+  const title = root.querySelector("#destination")?.textContent.trim() || "Travel Plan";
   if (root.title !== title) root.title = title;
   const description = root.querySelector('meta[name="description"]');
   if (description) description.content = locale === "pt-BR"

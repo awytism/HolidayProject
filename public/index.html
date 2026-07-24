@@ -1,15 +1,16 @@
 <!doctype html>
-<html lang="en-GB" data-theme="light">
+<html lang="en-GB" data-theme="light" data-font="google-sans">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#fbf7e8">
   <meta name="description" content="Travel Plan — an editable travel planner">
-  <title>Travel Plan | Gramado 2026</title>
-  <link rel="icon" href="/assets/brand/favicon.png" type="image/png">
+  <title>Travel Plan | Itinerary</title>
+  <link rel="icon" id="siteFavicon" href="/assets/brand/favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="/assets/brand/favicon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:wght@300..900&amp;display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=ABeeZee:ital@0;1&amp;family=Cause:wght@100..900&amp;family=Google+Sans+Flex:wght@300..900&amp;family=Inter:wght@300..900&amp;family=Life+Savers:wght@400;700;800&amp;display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/client/styles/index.css">
 </head>
 <body>
@@ -17,26 +18,49 @@
   <div class="ambient ambient-two" aria-hidden="true"></div>
 
   <header class="workspace-bar">
-    <a class="brand" href="#transport" aria-label="Dudu &amp; Ale" data-no-translate>
-      <span class="brand-wordmark"><span class="brand-name" id="brandName">Dudu &amp; Ale</span></span>
+    <a class="brand" href="#transport" aria-label="Itinerary" data-no-translate>
+      <span class="brand-wordmark"><span class="brand-name" id="brandName" data-inline-static>Itinerary</span></span>
     </a>
     <nav class="main-nav" aria-label="Trip sections">
       <button class="nav-item is-active" type="button" data-view="transport" aria-label="Transport" title="Transport" aria-current="true"><svg class="nav-line-icon nav-airplane-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M17.8 19 16 11l3.5-3.5c1.5-1.5 2-3.5 1-4.5s-3-.5-4.5 1L12.5 7.5l-8-1.8L3 7l6.5 4L6 14.5 3.5 14 2 15.5l4 2 2 4L9.5 20 9 17.5l3.5-3.5 4 6.5 1.3-1.5Z"/></svg><span class="sr-only">Transport</span></button>
       <button class="nav-item" type="button" data-view="stay" aria-label="Accommodation" title="Accommodation"><svg class="nav-line-icon nav-accommodation-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m3 11 9-8 9 8M5 10v11h14V10M9 21v-7h6v7"/></svg><span class="sr-only">Accommodation</span></button>
       <button class="nav-item" id="itineraryNavButton" type="button" data-view="agenda" aria-label="Agenda" title="Agenda"><svg class="nav-line-icon nav-agenda-icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="18" rx="2"/><path d="M9 4V2h6v2M8 9h8m-8 5h8m-8 5h5"/></svg><span class="sr-only">Agenda</span></button>
+      <button class="nav-item" id="placesNavButton" type="button" data-view="places" aria-label="Other" title="Other"><svg class="nav-line-icon nav-places-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2.2 4.8-4.8 2.2 2.2-4.8 4.8-2.2Z"/><path d="m10.7 10.7 2.6 2.6"/></svg><span class="sr-only">Other</span></button>
     </nav>
     <button class="mobile-actions-toggle" id="mobileActionsToggle" type="button" aria-label="Display options" title="Display options" aria-controls="workspaceActions" aria-expanded="false">
       <span class="mobile-actions-toggle-dots" aria-hidden="true"><i></i><i></i><i></i></span>
     </button>
     <div class="workspace-actions" id="workspaceActions">
       <div class="language-switch" role="group" aria-label="Language" data-no-translate>
-        <button class="language-button is-active" type="button" data-locale="en-GB" lang="en-GB" aria-label="British English" aria-pressed="true">EN</button>
-        <button class="language-button" type="button" data-locale="pt-BR" lang="pt-BR" aria-label="Português Brasileiro" aria-pressed="false">PT</button>
+        <button class="language-button is-active" type="button" data-locale="en-GB" lang="en-GB" aria-label="British English" aria-pressed="true"><span>EN</span></button>
+        <button class="language-button" type="button" data-locale="pt-BR" lang="pt-BR" aria-label="Português brasileiro" aria-pressed="false"><span>PT</span></button>
       </div>
       <div class="font-controls" aria-label="Text size controls">
-        <button class="font-button" id="fontDecrease" type="button" aria-label="Decrease text size">A−</button>
+        <button class="font-button" id="fontDecrease" type="button" aria-label="Decrease text size"><span>A−</span></button>
         <span class="sr-only" id="fontScaleStatus" aria-live="polite">Text size: 100%</span>
-        <button class="font-button" id="fontIncrease" type="button" aria-label="Increase text size">A+</button>
+        <button class="font-button" id="fontIncrease" type="button" aria-label="Increase text size"><span>A+</span></button>
+      </div>
+      <div class="font-family-control" id="fontFamilyControl">
+        <button class="icon-button font-family-toggle" id="fontFamilyToggle" type="button" aria-label="Open font options" title="Font" aria-haspopup="menu" aria-controls="fontFamilyMenu" aria-expanded="false">
+          <svg class="font-family-toggle-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7V4h16v3M12 4v16M8 20h8"/></svg>
+        </button>
+        <div class="font-family-popover" id="fontFamilyMenu" role="menu" aria-label="Font options" hidden>
+          <button class="font-family-choice" type="button" role="menuitemradio" data-font="abeezee" aria-label="ABeeZee" aria-checked="false"><span>ABeeZee</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6.5 12.5 3.3 3.3 7.7-8"/></svg></button>
+          <button class="font-family-choice" type="button" role="menuitemradio" data-font="cause" aria-label="Cause" aria-checked="false"><span>Cause</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6.5 12.5 3.3 3.3 7.7-8"/></svg></button>
+          <button class="font-family-choice is-selected" type="button" role="menuitemradio" data-font="google-sans" aria-label="Google Sans" aria-checked="true"><span>Google Sans</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6.5 12.5 3.3 3.3 7.7-8"/></svg></button>
+          <button class="font-family-choice" type="button" role="menuitemradio" data-font="inter" aria-label="Inter" aria-checked="false"><span>Inter</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6.5 12.5 3.3 3.3 7.7-8"/></svg></button>
+          <button class="font-family-choice" id="customFontChoice" type="button" role="menuitemradio" data-font="life-savers" aria-label="Life Savers" aria-checked="false"><span data-custom-font-label>Life Savers</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6.5 12.5 3.3 3.3 7.7-8"/></svg></button>
+          <div class="custom-font-editor" id="customFontEditor" data-inline-ignore>
+            <strong>Custom Font</strong>
+            <small id="customFontStatus" aria-live="polite" hidden></small>
+            <div class="custom-font-actions">
+              <input class="sr-only" id="customFontInput" type="file" accept=".ttf,.otf,.woff,.woff2,font/ttf,font/otf,font/woff,font/woff2">
+              <label class="custom-font-upload" for="customFontInput"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V4m-5 5 5-5 5 5M4 20h16"/></svg><span>Upload font</span></label>
+              <button class="custom-font-remove" id="customFontRemove" type="button" aria-label="Remove custom font" title="Use Life Savers" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3m3 0-1 14H7L6 7m4 4v6m4-6v6"/></svg></button>
+            </div>
+            <small>TTF, OTF, WOFF or WOFF2 · 5 MB maximum</small>
+          </div>
+        </div>
       </div>
       <div class="palette-control" id="paletteControl">
         <button class="icon-button palette-toggle" id="paletteToggle" type="button" aria-label="Open colour palette" title="Colour palette" aria-haspopup="menu" aria-controls="paletteMenu" aria-expanded="false">
@@ -47,10 +71,33 @@
           </svg>
         </button>
         <div class="palette-popover" id="paletteMenu" role="menu" aria-label="Palette options" hidden>
-          <button class="palette-choice is-selected" type="button" role="menuitemradio" data-palette="coral-olive-teal" aria-label="Coral, Olive &amp; Teal — current palette" aria-checked="true">
-            <span class="palette-choice-swatch" aria-hidden="true"><i></i><i></i><i></i></span>
+          <button class="palette-choice is-selected" type="button" role="menuitemradio" data-palette="coral-olive-teal" data-palette-label="Coral, Olive &amp; Teal" aria-label="Coral, Olive &amp; Teal" title="Coral, Olive &amp; Teal" aria-checked="true">
+            <span class="palette-choice-swatch" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
             <svg class="palette-choice-check" viewBox="0 0 24 24" aria-hidden="true"><path d="m6.5 12.5 3.3 3.3 7.7-8"/></svg>
           </button>
+          <button class="palette-choice" type="button" role="menuitemradio" data-palette="periwinkle-dream" data-palette-label="Periwinkle Dream" aria-label="Periwinkle Dream" title="Periwinkle Dream" aria-checked="false">
+            <span class="palette-choice-swatch" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+            <svg class="palette-choice-check" viewBox="0 0 24 24" aria-hidden="true"><path d="m6.5 12.5 3.3 3.3 7.7-8"/></svg>
+          </button>
+          <button class="palette-choice" type="button" role="menuitemradio" data-palette="custom-palette" data-palette-label="Custom Palette" aria-label="Custom Palette" title="Custom Palette" aria-checked="false">
+            <span class="palette-choice-swatch" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+            <svg class="palette-choice-check" viewBox="0 0 24 24" aria-hidden="true"><path d="m6.5 12.5 3.3 3.3 7.7-8"/></svg>
+          </button>
+          <form class="custom-palette-editor" id="customPaletteEditor" data-inline-ignore aria-label="Edit custom palette">
+            <div class="custom-palette-editor-header">
+              <strong>Custom Palette</strong>
+              <button class="custom-palette-save" type="submit" aria-label="Save custom palette" title="Save custom palette"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3h14l2 2v16H4V3Z"/><path d="M8 3v6h8V3M8 21v-7h8v7"/></svg></button>
+            </div>
+            <div class="custom-palette-fields">
+              <label><span>1</span><span class="custom-palette-input"><i data-custom-palette-preview aria-hidden="true"></i><input type="text" inputmode="text" autocomplete="off" maxlength="7" pattern="#?[0-9A-Fa-f]{6}" placeholder="#C73866" aria-label="Colour 1 hex" data-custom-palette-input></span></label>
+              <label><span>2</span><span class="custom-palette-input"><i data-custom-palette-preview aria-hidden="true"></i><input type="text" inputmode="text" autocomplete="off" maxlength="7" pattern="#?[0-9A-Fa-f]{6}" placeholder="#FE676E" aria-label="Colour 2 hex" data-custom-palette-input></span></label>
+              <label><span>3</span><span class="custom-palette-input"><i data-custom-palette-preview aria-hidden="true"></i><input type="text" inputmode="text" autocomplete="off" maxlength="7" pattern="#?[0-9A-Fa-f]{6}" placeholder="#FD8F52" aria-label="Colour 3 hex" data-custom-palette-input></span></label>
+              <label><span>4</span><span class="custom-palette-input"><i data-custom-palette-preview aria-hidden="true"></i><input type="text" inputmode="text" autocomplete="off" maxlength="7" pattern="#?[0-9A-Fa-f]{6}" placeholder="#FFBD71" aria-label="Colour 4 hex" data-custom-palette-input></span></label>
+              <label><span>5</span><span class="custom-palette-input"><i data-custom-palette-preview aria-hidden="true"></i><input type="text" inputmode="text" autocomplete="off" maxlength="7" pattern="#?[0-9A-Fa-f]{6}" placeholder="#FFDCA2" aria-label="Colour 5 hex" data-custom-palette-input></span></label>
+            </div>
+            <p class="custom-palette-error" id="customPaletteError" role="alert" hidden>Enter five valid six-digit hex colours.</p>
+
+          </form>
         </div>
       </div>
       <button class="icon-button" id="themeToggle" type="button" aria-label="Enable dark mode">
@@ -72,31 +119,37 @@
   <main id="sectionsRoot">
     <section class="hero section-shell" id="transport" aria-labelledby="tripTitle">
       <div>
-        <div class="eyebrow">Our Next Adventure</div>
-        <h1 id="tripTitle"><span id="destination">Gramado</span></h1>
-        <p class="location-line"><span class="hero-location-icon" aria-hidden="true"><svg class="hero-location-pin" viewBox="0 0 24 24"><path d="M12 21s7-6.1 7-12A7 7 0 0 0 5 9c0 5.9 7 12 7 12Z"/><circle cx="12" cy="9" r="2.3"/></svg></span><span id="region">Rio Grande do Sul</span></p>
+        <div class="eyebrow">Subtitle</div>
+        <h1 id="tripTitle"><span id="destination">Trip title</span></h1>
+        <p class="location-line"><span class="hero-location-icon" aria-hidden="true"><svg class="hero-location-pin" viewBox="0 0 24 24"><path d="M12 21s7-6.1 7-12A7 7 0 0 0 5 9c0 5.9 7 12 7 12Z"/><circle cx="12" cy="9" r="2.3"/></svg></span><span id="region">City, state or country</span></p>
         <button class="hero-cover-button" id="heroCoverButton" type="button" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span class="sr-only" id="heroCoverButtonLabel">Add image</span></button>
       </div>
       <div class="hero-stats">
-        <div class="stat stat-date"><span class="stat-icon" aria-hidden="true" data-inline-date-action="hero" data-inline-date-label="Trip Dates"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4m8-4v4M3 10h18"/></svg></span><div class="stat-copy stat-date-copy"><small data-inline-static>Date</small><strong class="travel-dates" id="travelDates" data-inline-date-action="hero" data-inline-date-label="Trip Dates">24/10 - 01/11 2026</strong><div class="hero-date-editor" id="travelDateEditor" hidden><label><span>Start</span><input id="tripStartDate" type="date" data-meta-date="startDate" aria-label="Trip Start Date"></label><label><span>End</span><input id="tripEndDate" type="date" data-meta-date="endDate" aria-label="Trip End Date"></label></div></div></div>
-        <div class="stat stat-duration"><span class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><div class="stat-copy"><small data-inline-static>Duration</small><strong id="tripDays" data-inline-static>9 days</strong></div></div>
-        <div class="stat stat-transport"><span class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 21s7-6.1 7-12A7 7 0 0 0 5 9c0 5.9 7 12 7 12Z"/><circle cx="12" cy="9" r="2.3"/></svg></span><div class="stat-copy"><small data-inline-static>Transport</small><strong id="tripLegs" data-inline-static>4 legs</strong></div></div>
+        <div class="stat stat-date"><span class="stat-icon" aria-hidden="true" data-inline-date-action="hero" data-inline-date-label="Trip Dates"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4m8-4v4M3 10h18"/></svg></span><div class="stat-copy stat-date-copy"><small data-inline-static>Date</small><strong class="travel-dates" id="travelDates" data-inline-date-action="hero" data-inline-date-label="Trip Dates">Add trip dates</strong><div class="hero-date-editor" id="travelDateEditor" hidden><label><span>Start</span><input id="tripStartDate" type="date" data-meta-date="startDate" aria-label="Trip Start Date"></label><label><span>End</span><input id="tripEndDate" type="date" data-meta-date="endDate" aria-label="Trip End Date"></label></div></div></div>
+        <div class="stat stat-duration"><span class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><div class="stat-copy"><small data-inline-static>Duration</small><strong id="tripDays" data-inline-static>0 days</strong></div></div>
+        <div class="stat stat-transport"><span class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 21s7-6.1 7-12A7 7 0 0 0 5 9c0 5.9 7 12 7 12Z"/><circle cx="12" cy="9" r="2.3"/></svg></span><div class="stat-copy"><small data-inline-static>Transport</small><strong id="tripLegs" data-inline-static>0 legs</strong></div></div>
       </div>
+      <button class="hero-structure-remove" id="heroRemoveButton" type="button" data-hero-action="remove" data-inline-ignore aria-label="Remove hero banner" title="Remove hero banner" hidden><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3m3 0-1 14H7L6 7m4 4v6m4-6v6"/></svg><span class="sr-only">Remove hero banner</span></button>
     </section>
+    <button class="hero-structure-restore" id="heroRestoreButton" type="button" data-hero-action="restore" data-inline-ignore hidden>+ Add hero banner</button>
 
     <section class="section-shell content-section trip-section" id="transportSection" data-page-section="transport" aria-labelledby="transportTitle">
-      <div class="section-heading"><h2 class="section-pill" id="transportTitle"><span><span class="section-pill-icon section-pill-icon-transport" aria-hidden="true"><svg class="nav-line-icon nav-airplane-icon" viewBox="0 0 24 24"><path d="M17.8 19 16 11l3.5-3.5c1.5-1.5 2-3.5 1-4.5s-3-.5-4.5 1L12.5 7.5l-8-1.8L3 7l6.5 4L6 14.5 3.5 14 2 15.5l4 2 2 4L9.5 20 9 17.5l3.5-3.5 4 6.5 1.3-1.5Z"/></svg></span><span class="section-pill-label" id="transportTitleLabel">Itinerary</span></span><span class="section-pill-measure" aria-hidden="true" data-no-translate><span class="section-pill-icon section-pill-icon-spacer"></span>Accommodation</span></h2></div>
+      <div class="section-heading" data-section-title-heading="transport"><h2 class="section-pill" id="transportTitle"><span><span class="section-pill-icon section-pill-icon-transport" aria-hidden="true"><svg class="nav-line-icon nav-airplane-icon" viewBox="0 0 24 24"><path d="M17.8 19 16 11l3.5-3.5c1.5-1.5 2-3.5 1-4.5s-3-.5-4.5 1L12.5 7.5l-8-1.8L3 7l6.5 4L6 14.5 3.5 14 2 15.5l4 2 2 4L9.5 20 9 17.5l3.5-3.5 4 6.5 1.3-1.5Z"/></svg></span><span class="section-pill-label" id="transportTitleLabel">Transit</span></span></h2><button class="section-title-action section-title-remove" type="button" data-section-title-action="remove" data-inline-ignore aria-label="Remove title pill" title="Remove title pill" data-section="transport" hidden><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3m3 0-1 14H7L6 7m4 4v6m4-6v6"/></svg><span class="sr-only">Remove title pill</span></button><button class="section-title-action section-title-restore" type="button" data-section-title-action="restore" data-inline-ignore data-section="transport" hidden>+ Add title pill</button></div>
       <div class="section-root" id="transportRoot" data-section-root="transport"><div class="loading-state">Loading your trip…</div></div>
     </section>
 
     <section class="section-shell content-section trip-section" id="staySection" data-page-section="stay" aria-labelledby="stayTitle">
-      <div class="section-heading"><h2 class="section-pill" id="stayTitle"><span><span class="section-pill-icon section-pill-icon-stay" aria-hidden="true"><svg class="nav-line-icon nav-accommodation-icon" viewBox="0 0 24 24"><path d="m3 11 9-8 9 8M5 10v11h14V10M9 21v-7h6v7"/></svg></span><span class="section-pill-label" id="stayTitleLabel">Accommodation</span></span><span class="section-pill-measure" aria-hidden="true" data-no-translate><span class="section-pill-icon section-pill-icon-spacer"></span>Accommodation</span></h2></div>
+      <div class="section-heading" data-section-title-heading="stay"><h2 class="section-pill" id="stayTitle"><span><span class="section-pill-icon section-pill-icon-stay" aria-hidden="true"><svg class="nav-line-icon nav-accommodation-icon" viewBox="0 0 24 24"><path d="m3 11 9-8 9 8M5 10v11h14V10M9 21v-7h6v7"/></svg></span><span class="section-pill-label" id="stayTitleLabel">Accommodation</span></span></h2><button class="section-title-action section-title-remove" type="button" data-section-title-action="remove" data-inline-ignore aria-label="Remove title pill" title="Remove title pill" data-section="stay" hidden><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3m3 0-1 14H7L6 7m4 4v6m4-6v6"/></svg><span class="sr-only">Remove title pill</span></button><button class="section-title-action section-title-restore" type="button" data-section-title-action="restore" data-inline-ignore data-section="stay" hidden>+ Add title pill</button></div>
       <div class="section-root" id="stayRoot" data-section-root="stay"></div>
     </section>
 
     <section class="section-shell content-section trip-section" id="agendaSection" data-page-section="agenda" aria-labelledby="agendaTitle">
-      <div class="section-heading"><h2 class="section-pill" id="agendaTitle"><span><span class="section-pill-icon section-pill-icon-agenda" aria-hidden="true"><svg class="nav-line-icon nav-agenda-icon" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="18" rx="2"/><path d="M9 4V2h6v2M8 9h8m-8 5h8m-8 5h5"/></svg></span><span class="section-pill-label" id="agendaTitleLabel">Agenda</span></span><span class="section-pill-measure" aria-hidden="true" data-no-translate><span class="section-pill-icon section-pill-icon-spacer"></span>Accommodation</span></h2></div>
+      <div class="section-heading" data-section-title-heading="agenda"><h2 class="section-pill" id="agendaTitle"><span><span class="section-pill-icon section-pill-icon-agenda" aria-hidden="true"><svg class="nav-line-icon nav-agenda-icon" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="18" rx="2"/><path d="M9 4V2h6v2M8 9h8m-8 5h8m-8 5h5"/></svg></span><span class="section-pill-label" id="agendaTitleLabel">Agenda</span></span></h2><button class="section-title-action section-title-remove" type="button" data-section-title-action="remove" data-inline-ignore aria-label="Remove title pill" title="Remove title pill" data-section="agenda" hidden><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3m3 0-1 14H7L6 7m4 4v6m4-6v6"/></svg><span class="sr-only">Remove title pill</span></button><button class="section-title-action section-title-restore" type="button" data-section-title-action="restore" data-inline-ignore data-section="agenda" hidden>+ Add title pill</button></div>
       <div class="section-root" id="agendaRoot" data-section-root="agenda"></div>
+    </section>
+    <section class="section-shell content-section trip-section" id="placesSection" data-page-section="places" aria-labelledby="placesTitle">
+      <div class="section-heading" data-section-title-heading="places"><h2 class="section-pill" id="placesTitle"><span><span class="section-pill-icon section-pill-icon-places" aria-hidden="true"><svg class="nav-line-icon nav-places-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2.2 4.8-4.8 2.2 2.2-4.8 4.8-2.2Z"/><path d="m10.7 10.7 2.6 2.6"/></svg></span><span class="section-pill-label" id="placesTitleLabel">Other</span></span></h2><button class="section-title-action section-title-remove" type="button" data-section-title-action="remove" data-inline-ignore aria-label="Remove title pill" title="Remove title pill" data-section="places" hidden><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3m3 0-1 14H7L6 7m4 4v6m4-6v6"/></svg><span class="sr-only">Remove title pill</span></button><button class="section-title-action section-title-restore" type="button" data-section-title-action="restore" data-inline-ignore data-section="places" hidden>+ Add title pill</button></div>
+      <div class="section-root" id="placesRoot" data-section-root="places"></div>
     </section>
   </main>
 

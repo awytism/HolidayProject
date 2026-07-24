@@ -1,5 +1,5 @@
 import { escapeHtml, safeUrl } from "../utils/html.js";
-import { renderIcon } from "../ui/icon-registry.js";
+import { renderActionIcon, renderIcon } from "../ui/icon-registry.js";
 import { editField } from "./shared.js";
 
 export const GENERIC_TYPES = new Set(["table", "image-card", "icon-list", "checklist", "facts", "link-card", "note"]);
@@ -49,7 +49,7 @@ function renderTable(data) {
 
 function renderTableEditor(data) {
   const headers = data.columns.map((item, index) => `<input value="${escapeHtml(item.label)}" data-table-column="${index}" aria-label="Coluna ${index + 1}">`).join("");
-  const rows = data.rows.map((item, rowIndex) => `<div class="table-edit-row" data-row-index="${rowIndex}">${item.cells.map((cell, columnIndex) => `<input value="${escapeHtml(cell)}" data-table-cell="${columnIndex}" aria-label="Linha ${rowIndex + 1} coluna ${columnIndex + 1}">`).join("")}<button type="button" data-table-action="delete-row">×</button></div>`).join("");
+  const rows = data.rows.map((item, rowIndex) => `<div class="table-edit-row" data-row-index="${rowIndex}">${item.cells.map((cell, columnIndex) => `<input value="${escapeHtml(cell)}" data-table-cell="${columnIndex}" aria-label="Linha ${rowIndex + 1} coluna ${columnIndex + 1}">`).join("")}<button type="button" data-table-action="delete-row" aria-label="Excluir linha" title="Excluir linha">${renderActionIcon("trash")}<span class="sr-only">Excluir linha</span></button></div>`).join("");
   return `<div class="content-block edit-form table-editor">${editField("Título", "title", data.title)}<div class="table-edit-columns">${headers}</div>${rows}<div class="inline-actions"><button type="button" data-table-action="add-row">+ Linha</button><button type="button" data-table-action="add-column">+ Coluna</button><button type="button" data-table-action="delete-column">− Coluna</button></div></div>`;
 }
 
@@ -59,9 +59,9 @@ function renderCollectionEditor(type, data) {
 }
 
 function collectionEditRow(type, item, index) {
-  if (type === "facts") return `<div class="list-edit-row two-fields" data-generic-index="${index}"><input value="${escapeHtml(item.label)}" data-generic-field="label" aria-label="Rótulo"><input value="${escapeHtml(item.value)}" data-generic-field="value" aria-label="Valor"><button type="button" data-generic-list-action="delete">×</button></div>`;
-  if (type === "checklist") return `<div class="list-edit-row checklist-edit" data-generic-index="${index}"><input type="checkbox" ${item.checked ? "checked" : ""} data-generic-field="checked" aria-label="Concluído"><input value="${escapeHtml(item.label)}" data-generic-field="label" aria-label="Item da lista"><button type="button" data-generic-list-action="delete">×</button></div>`;
-  return `<div class="list-edit-row two-fields" data-generic-index="${index}"><input value="${escapeHtml(item.label)}" data-generic-field="label" aria-label="Item"><input value="${escapeHtml(item.iconKey)}" data-generic-field="iconKey" aria-label="Chave do ícone"><button type="button" data-generic-list-action="delete">×</button></div>`;
+  if (type === "facts") return `<div class="list-edit-row two-fields" data-generic-index="${index}"><input value="${escapeHtml(item.label)}" data-generic-field="label" aria-label="Rótulo"><input value="${escapeHtml(item.value)}" data-generic-field="value" aria-label="Valor"><button type="button" data-generic-list-action="delete" aria-label="Excluir item" title="Excluir item">${renderActionIcon("trash")}<span class="sr-only">Excluir item</span></button></div>`;
+  if (type === "checklist") return `<div class="list-edit-row checklist-edit" data-generic-index="${index}"><input type="checkbox" ${item.checked ? "checked" : ""} data-generic-field="checked" aria-label="Concluído"><input value="${escapeHtml(item.label)}" data-generic-field="label" aria-label="Item da lista"><button type="button" data-generic-list-action="delete" aria-label="Excluir item" title="Excluir item">${renderActionIcon("trash")}<span class="sr-only">Excluir item</span></button></div>`;
+  return `<div class="list-edit-row two-fields" data-generic-index="${index}"><input value="${escapeHtml(item.label)}" data-generic-field="label" aria-label="Item"><input value="${escapeHtml(item.iconKey)}" data-generic-field="iconKey" aria-label="Chave do ícone"><button type="button" data-generic-list-action="delete" aria-label="Excluir item" title="Excluir item">${renderActionIcon("trash")}<span class="sr-only">Excluir item</span></button></div>`;
 }
 
 function renderImageCard(data) {

@@ -1,6 +1,6 @@
 const LANGUAGE_NAMES = Object.freeze({
   "en-GB": "British English",
-  "pt-BR": "Português Brasileiro",
+  "pt-BR": "Português brasileiro",
 });
 
 export function updateLanguageButtonStates(buttons, locale) {

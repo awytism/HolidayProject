@@ -39,8 +39,9 @@
   --font-weight-regular: 400;
   --font-weight-pill-title: 500;
   --font-weight-title: 600;
-  --icon-stroke-width: 1.5px;
-  --icon-outline-width: 1.5px;
+  --icon-line-width: 1.5px;
+  --icon-stroke-width: var(--icon-line-width);
+  --icon-outline-width: var(--icon-line-width);
   --font-scale: 1;
   --text-minimum: max(14px,calc(14px * var(--font-scale)));
   --text-caption: var(--text-minimum);
@@ -50,6 +51,12 @@
   --text-medium: calc(1.125rem * var(--font-scale));
   --text-large: calc(1.375rem * var(--font-scale));
 }
+
+:root[data-font="google-sans"] { --font-family: "Google Sans Flex", sans-serif; }
+:root[data-font="abeezee"] { --font-family: "ABeeZee", sans-serif; }
+:root[data-font="cause"] { --font-family: "Cause", cursive; }
+:root[data-font="inter"] { --font-family: "Inter", sans-serif; }
+:root[data-font="life-savers"] { --font-family: var(--custom-font-family,"Life Savers"), cursive; }
 
 /* The initial selectable site palette; additional named palettes can override
    these same core tokens without changing component styles. */

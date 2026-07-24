@@ -1,0 +1,457 @@
+/* Named five-colour themes. Loaded last so every component consumes the selected palette. */
+:root {
+  --font-control-highlight: color-mix(in srgb,var(--gradient-olive) 36%,var(--surface));
+  --font-control-highlight-text: var(--text);
+}
+
+/* Every populated note uses the Agenda treatment and only active theme tokens. */
+:root .day-note:not(.place-empty-banner):not(.meal-empty-banner) {
+  border-left-color: var(--accent);
+  background: var(--card-wash-gradient);
+  color: var(--text);
+}
+
+:root[data-palette="periwinkle-dream"] {
+  --theme-1: #6C7EE1;
+  --theme-2: #92B9E3;
+  --theme-3: #FFCAA4;
+  --theme-4: #F8A2D0;
+  --theme-5: #C688EB;
+}
+
+:root[data-palette="custom-palette"] {
+  --theme-1: var(--custom-theme-1,#C73866);
+  --theme-2: var(--custom-theme-2,#FE676E);
+  --theme-3: var(--custom-theme-3,#FD8F52);
+  --theme-4: var(--custom-theme-4,#FFBD71);
+  --theme-5: var(--custom-theme-5,#FFDCA2);
+}
+
+/* Light themes keep the source colours vivid while deriving calm, readable surfaces. */
+:root[data-palette]:not([data-palette="coral-olive-teal"]) {
+  --palette-coral: var(--theme-1);
+  --palette-cream: var(--theme-3);
+  --palette-olive: var(--theme-4);
+  --palette-lime: var(--theme-5);
+  --palette-teal: var(--theme-2);
+  --palette-charcoal: color-mix(in srgb,var(--theme-1) 30%,#303030);
+  --bg: color-mix(in srgb,var(--theme-2) 9%,#FFFFFF);
+  --surface: color-mix(in srgb,var(--theme-3) 5%,#FFFFFF);
+  --surface-soft: color-mix(in srgb,var(--theme-2) 18%,#FFFFFF);
+  --text: #303030;
+  --muted: #303030;
+  --faint: #303030;
+  --line: color-mix(in srgb,var(--theme-1) 24%,#FFFFFF);
+  --primary: var(--theme-1);
+  --primary-dark: color-mix(in srgb,var(--theme-1) 72%,#202020);
+  --primary-soft: color-mix(in srgb,var(--theme-1) 18%,#FFFFFF);
+  --brand-plane: var(--primary-dark);
+  --blue: var(--theme-2);
+  --blue-soft: color-mix(in srgb,var(--theme-2) 22%,#FFFFFF);
+  --pink: var(--theme-4);
+  --pink-soft: color-mix(in srgb,var(--theme-4) 20%,#FFFFFF);
+  --priority-high: color-mix(in srgb,var(--theme-1) 78%,#303030);
+  --priority-high-soft: color-mix(in srgb,var(--theme-1) 18%,#FFFFFF);
+  --priority-medium: color-mix(in srgb,var(--theme-2) 68%,#303030);
+  --priority-medium-soft: color-mix(in srgb,var(--theme-2) 21%,#FFFFFF);
+  --priority-low: color-mix(in srgb,var(--theme-5) 66%,#303030);
+  --priority-low-soft: color-mix(in srgb,var(--theme-5) 22%,#FFFFFF);
+  --accent: var(--theme-5);
+  --accent-soft: color-mix(in srgb,var(--theme-5) 22%,#FFFFFF);
+  --sage: var(--theme-2);
+  --sage-soft: color-mix(in srgb,var(--theme-2) 22%,#FFFFFF);
+  --date-icon-background: color-mix(in srgb,var(--theme-1) 16%,#FFFFFF);
+  --date-icon-colour: color-mix(in srgb,var(--theme-1) 76%,#252525);
+  --duration-icon-background: color-mix(in srgb,var(--theme-3) 28%,#FFFFFF);
+  --duration-icon-colour: color-mix(in srgb,var(--theme-3) 58%,#303030);
+  --transport-icon-background: color-mix(in srgb,var(--theme-5) 18%,#FFFFFF);
+  --transport-icon-colour: color-mix(in srgb,var(--theme-5) 70%,#303030);
+  --icon-fourth-background: color-mix(in srgb,var(--theme-4) 18%,#FFFFFF);
+  --icon-fourth-colour: color-mix(in srgb,var(--theme-4) 66%,#303030);
+  --gradient-coral: var(--theme-1);
+  --gradient-olive: var(--theme-3);
+  --gradient-teal: var(--theme-5);
+  --gradient-coral-soft: color-mix(in srgb,var(--theme-1) 48%,#FFFFFF);
+  --gradient-olive-soft: color-mix(in srgb,var(--theme-3) 58%,#FFFFFF);
+  --gradient-teal-soft: color-mix(in srgb,var(--theme-5) 48%,#FFFFFF);
+  --brand-gradient: linear-gradient(120deg,var(--theme-1) 0%,var(--theme-2) 25%,var(--theme-3) 50%,var(--theme-4) 75%,var(--theme-5) 100%);
+  --brand-gradient-vertical: linear-gradient(180deg,var(--theme-1) 0%,var(--theme-2) 25%,var(--theme-3) 50%,var(--theme-4) 75%,var(--theme-5) 100%);
+  --section-pill-gradient: linear-gradient(120deg,color-mix(in srgb,var(--theme-1) 48%,#FFFFFF),color-mix(in srgb,var(--theme-2) 48%,#FFFFFF) 25%,color-mix(in srgb,var(--theme-3) 58%,#FFFFFF) 50%,color-mix(in srgb,var(--theme-4) 48%,#FFFFFF) 75%,color-mix(in srgb,var(--theme-5) 48%,#FFFFFF));
+  --section-title-gradient: var(--brand-gradient);
+  --section-outline-coral: color-mix(in srgb,var(--theme-1) 72%,#FFFFFF);
+  --section-outline-olive: color-mix(in srgb,var(--theme-3) 74%,#FFFFFF);
+  --section-outline-teal: color-mix(in srgb,var(--theme-5) 72%,#FFFFFF);
+  --section-outline-gradient: linear-gradient(120deg,var(--theme-1) 0%,var(--theme-2) 25%,var(--theme-3) 50%,var(--theme-4) 75%,var(--theme-5) 100%);
+  --card-wash-gradient: linear-gradient(135deg,color-mix(in srgb,var(--theme-1) 9%,var(--surface)) 0%,color-mix(in srgb,var(--theme-2) 8%,var(--surface)) 25%,color-mix(in srgb,var(--theme-3) 9%,var(--surface)) 50%,color-mix(in srgb,var(--theme-4) 8%,var(--surface)) 75%,color-mix(in srgb,var(--theme-5) 10%,var(--surface)) 100%);
+  --attachment-tab-gradient: linear-gradient(115deg,color-mix(in srgb,var(--theme-1) 15%,#FFFFFF),color-mix(in srgb,var(--theme-2) 15%,#FFFFFF) 25%,color-mix(in srgb,var(--theme-3) 17%,#FFFFFF) 50%,color-mix(in srgb,var(--theme-4) 15%,#FFFFFF) 75%,color-mix(in srgb,var(--theme-5) 17%,#FFFFFF));
+  --page-background-gradient: linear-gradient(145deg,color-mix(in srgb,var(--theme-1) 16%,#FFFFFF) 0%,color-mix(in srgb,var(--theme-2) 13%,#FFFFFF) 25%,color-mix(in srgb,var(--theme-3) 14%,#FFFFFF) 50%,color-mix(in srgb,var(--theme-4) 13%,#FFFFFF) 75%,color-mix(in srgb,var(--theme-5) 16%,#FFFFFF) 100%);
+  --hero-title-gradient: var(--brand-gradient);
+  --destination-gradient: var(--brand-gradient);
+  --itinerary-pill-gradient: var(--section-pill-gradient);
+  --menu-control-background: color-mix(in srgb,var(--theme-2) 8%,#F8F8F6);
+  --menu-control-border: color-mix(in srgb,var(--theme-1) 18%,#EEEEEA);
+  --menu-action-gradient: var(--section-pill-gradient);
+  --editor-save-gradient: var(--card-wash-gradient);
+  --editor-save-outline-gradient: var(--section-outline-gradient);
+  --editor-accent: color-mix(in srgb,var(--theme-2) 70%,#303030);
+  --editor-accent-strong: color-mix(in srgb,var(--theme-2) 52%,#202020);
+  --editor-accent-soft: color-mix(in srgb,var(--theme-2) 16%,#FFFFFF);
+  --editor-panel: var(--surface);
+  --editor-panel-muted: var(--surface-soft);
+  --editor-control-border: var(--line);
+  --transport-detail-gradient: var(--card-wash-gradient);
+  --shadow: 0 18px 50px color-mix(in srgb,var(--theme-1) 10%,transparent),0 3px 12px rgba(30,30,30,.055);
+  --shadow-hover: 0 24px 65px color-mix(in srgb,var(--theme-5) 14%,transparent),0 6px 18px rgba(30,30,30,.075);
+}
+
+:root[data-palette]:not([data-palette="coral-olive-teal"]) .workspace-bar,
+:root[data-palette]:not([data-palette="coral-olive-teal"]) .palette-popover {
+  background: var(--surface);
+  color: var(--text);
+}
+
+:root[data-palette]:not([data-palette="coral-olive-teal"]) .workspace-bar .brand,
+:root[data-palette]:not([data-palette="coral-olive-teal"]) .palette-toggle {
+  background: linear-gradient(var(--surface),var(--surface)) padding-box,var(--section-outline-gradient) border-box;
+}
+
+/* Dark themes tint every foundational surface instead of leaving the original green charcoal behind. */
+:root[data-theme="dark"][data-palette]:not([data-palette="coral-olive-teal"]) {
+  color-scheme: dark;
+  --bg: color-mix(in srgb,var(--theme-1) 8%,#11131A);
+  --surface: color-mix(in srgb,var(--theme-2) 10%,#1B1D24);
+  --surface-soft: color-mix(in srgb,var(--theme-4) 11%,#252731);
+  --text: #F8F7F4;
+  --muted: color-mix(in srgb,var(--theme-2) 22%,#DDDDE2);
+  --faint: color-mix(in srgb,var(--theme-5) 24%,#A7A8B0);
+  --line: color-mix(in srgb,var(--theme-2) 30%,#292C35);
+  --primary: color-mix(in srgb,var(--theme-1) 78%,#FFFFFF);
+  --primary-dark: color-mix(in srgb,var(--theme-1) 58%,#FFFFFF);
+  --primary-soft: color-mix(in srgb,var(--theme-1) 22%,#252731);
+  --blue: color-mix(in srgb,var(--theme-2) 82%,#FFFFFF);
+  --blue-soft: color-mix(in srgb,var(--theme-2) 20%,#252731);
+  --pink: color-mix(in srgb,var(--theme-4) 82%,#FFFFFF);
+  --pink-soft: color-mix(in srgb,var(--theme-4) 20%,#252731);
+  --priority-high: color-mix(in srgb,var(--theme-1) 76%,#FFFFFF);
+  --priority-high-soft: color-mix(in srgb,var(--theme-1) 20%,#252731);
+  --priority-medium: color-mix(in srgb,var(--theme-2) 78%,#FFFFFF);
+  --priority-medium-soft: color-mix(in srgb,var(--theme-2) 20%,#252731);
+  --priority-low: color-mix(in srgb,var(--theme-5) 78%,#FFFFFF);
+  --priority-low-soft: color-mix(in srgb,var(--theme-5) 20%,#252731);
+  --accent: color-mix(in srgb,var(--theme-5) 82%,#FFFFFF);
+  --accent-soft: color-mix(in srgb,var(--theme-5) 20%,#252731);
+  --sage: color-mix(in srgb,var(--theme-2) 82%,#FFFFFF);
+  --sage-soft: color-mix(in srgb,var(--theme-2) 20%,#252731);
+  --date-icon-background: color-mix(in srgb,var(--theme-1) 24%,#252731);
+  --date-icon-colour: color-mix(in srgb,var(--theme-1) 78%,#FFFFFF);
+  --duration-icon-background: color-mix(in srgb,var(--theme-3) 22%,#252731);
+  --duration-icon-colour: color-mix(in srgb,var(--theme-3) 76%,#FFFFFF);
+  --transport-icon-background: color-mix(in srgb,var(--theme-5) 22%,#252731);
+  --transport-icon-colour: color-mix(in srgb,var(--theme-5) 78%,#FFFFFF);
+  --icon-fourth-background: color-mix(in srgb,var(--theme-4) 22%,#252731);
+  --icon-fourth-colour: color-mix(in srgb,var(--theme-4) 78%,#FFFFFF);
+  --gradient-coral: color-mix(in srgb,var(--theme-1) 86%,#FFFFFF);
+  --gradient-olive: color-mix(in srgb,var(--theme-3) 86%,#FFFFFF);
+  --gradient-teal: color-mix(in srgb,var(--theme-5) 86%,#FFFFFF);
+  --gradient-coral-soft: color-mix(in srgb,var(--theme-1) 27%,#252731);
+  --gradient-olive-soft: color-mix(in srgb,var(--theme-3) 25%,#252731);
+  --gradient-teal-soft: color-mix(in srgb,var(--theme-5) 27%,#252731);
+  --brand-gradient: linear-gradient(120deg,color-mix(in srgb,var(--theme-1) 86%,#FFFFFF),color-mix(in srgb,var(--theme-2) 86%,#FFFFFF) 25%,color-mix(in srgb,var(--theme-3) 86%,#FFFFFF) 50%,color-mix(in srgb,var(--theme-4) 86%,#FFFFFF) 75%,color-mix(in srgb,var(--theme-5) 86%,#FFFFFF));
+  --brand-gradient-vertical: linear-gradient(180deg,color-mix(in srgb,var(--theme-1) 86%,#FFFFFF),color-mix(in srgb,var(--theme-2) 86%,#FFFFFF) 25%,color-mix(in srgb,var(--theme-3) 86%,#FFFFFF) 50%,color-mix(in srgb,var(--theme-4) 86%,#FFFFFF) 75%,color-mix(in srgb,var(--theme-5) 86%,#FFFFFF));
+  --section-pill-gradient: linear-gradient(120deg,var(--gradient-coral-soft),color-mix(in srgb,var(--theme-2) 25%,#252731) 25%,var(--gradient-olive-soft) 50%,color-mix(in srgb,var(--theme-4) 25%,#252731) 75%,var(--gradient-teal-soft));
+  --section-title-gradient: var(--brand-gradient);
+  --section-outline-gradient: var(--brand-gradient);
+  --card-wash-gradient: linear-gradient(135deg,color-mix(in srgb,var(--theme-1) 13%,var(--surface)),color-mix(in srgb,var(--theme-2) 11%,var(--surface)) 25%,color-mix(in srgb,var(--theme-3) 12%,var(--surface)) 50%,color-mix(in srgb,var(--theme-4) 11%,var(--surface)) 75%,color-mix(in srgb,var(--theme-5) 14%,var(--surface)));
+  --attachment-tab-gradient: var(--card-wash-gradient);
+  --page-background-gradient: radial-gradient(circle at 5% 0%,color-mix(in srgb,var(--theme-1) 18%,transparent),transparent 34%),radial-gradient(circle at 52% 44%,color-mix(in srgb,var(--theme-3) 10%,transparent),transparent 38%),radial-gradient(circle at 100% 16%,color-mix(in srgb,var(--theme-5) 17%,transparent),transparent 34%),linear-gradient(145deg,var(--bg),color-mix(in srgb,var(--theme-3) 6%,#15171D) 54%,color-mix(in srgb,var(--theme-5) 9%,#11131A));
+  --hero-title-gradient: var(--brand-gradient);
+  --destination-gradient: var(--brand-gradient);
+  --itinerary-pill-gradient: var(--section-pill-gradient);
+  --menu-control-background: var(--surface-soft);
+  --menu-control-border: var(--line);
+  --menu-action-gradient: var(--section-pill-gradient);
+  --editor-save-gradient: var(--card-wash-gradient);
+  --editor-save-outline-gradient: var(--section-outline-gradient);
+  --editor-accent: color-mix(in srgb,var(--theme-2) 80%,#FFFFFF);
+  --editor-accent-strong: color-mix(in srgb,var(--theme-2) 64%,#FFFFFF);
+  --editor-accent-soft: color-mix(in srgb,var(--theme-2) 18%,#252731);
+  --editor-panel: var(--surface);
+  --editor-panel-muted: var(--surface-soft);
+  --editor-control-border: var(--line);
+  --transport-detail-gradient: var(--card-wash-gradient);
+  --shadow: 0 18px 46px rgba(0,0,0,.28),0 4px 14px color-mix(in srgb,var(--theme-2) 5%,transparent);
+  --shadow-hover: 0 24px 58px rgba(0,0,0,.36),0 7px 20px color-mix(in srgb,var(--theme-4) 6%,transparent);
+}
+
+:root[data-theme="dark"][data-palette]:not([data-palette="coral-olive-teal"]) .workspace-bar {
+  background: color-mix(in srgb,var(--surface) 94%,transparent);
+  border-bottom-color: color-mix(in srgb,var(--theme-2) 12%,transparent);
+  box-shadow: 0 8px 28px rgba(0,0,0,.26),0 1px color-mix(in srgb,var(--theme-1) 6%,transparent);
+}
+
+:root[data-theme="dark"][data-palette]:not([data-palette="coral-olive-teal"]) .workspace-bar .brand,
+:root[data-theme="dark"][data-palette]:not([data-palette="coral-olive-teal"]) .palette-toggle,
+:root[data-theme="dark"][data-palette]:not([data-palette="coral-olive-teal"]) .palette-popover {
+  background: linear-gradient(var(--surface-soft),var(--surface-soft)) padding-box,var(--section-outline-gradient) border-box;
+  color: var(--text);
+}
+
+/* Final palette-aware component colours. */
+:root .saved-places h3 {
+  background: var(--section-outline-gradient);
+  background-clip: text;
+  color: transparent;
+  font-weight: var(--font-weight-title) !important;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+:root .language-button > span,
+:root .font-button > span {
+  background: none;
+  color: #303030;
+  font-weight: 700;
+  -webkit-text-fill-color: #303030;
+}
+:root[data-theme="dark"] .language-button > span,
+:root[data-theme="dark"] .font-button > span {
+  color: #FFFFFF;
+  -webkit-text-fill-color: #FFFFFF;
+}
+
+/* Empty Agenda states always consume their complete grid row and follow the active palette in both modes. */
+:root .day-card .place-list,
+:root .day-card .meal-grid,
+:root .saved-place-group .saved-grid {
+  width: 100%;
+  min-width: 0;
+}
+:root .day-card .place-list > .place-empty-banner,
+:root .day-card .meal-grid > .meal-empty-banner,
+:root .saved-place-group .saved-grid > .saved-place-empty {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  height: auto;
+  min-height: 68px;
+  grid-column: 1 / -1 !important;
+  align-self: stretch;
+  align-items: center;
+  justify-content: flex-start;
+  justify-self: stretch;
+  overflow: visible;
+  border-color: color-mix(in srgb,var(--gradient-teal) 54%,var(--line));
+  background: var(--card-wash-gradient);
+  color: var(--text);
+  font-size: var(--text-small);
+  line-height: 1.5;
+  text-align: left;
+  text-overflow: clip;
+  white-space: normal;
+}
+body.is-inline-editing .day-card .place-list > .place-empty-banner,
+body.is-inline-editing .day-card .meal-grid > .meal-empty-banner {
+  display: flex;
+  width: 100%;
+  max-width: none;
+  grid-column: 1 / -1 !important;
+}
+:root .workspace-actions .font-family-toggle { color: var(--date-icon-colour); }
+:root .workspace-actions .palette-toggle { color: var(--duration-icon-colour); }
+:root .workspace-actions #themeToggle { color: var(--icon-fourth-colour); }
+:root .workspace-actions .edit-button { color: var(--transport-icon-colour); }
+:root .workspace-actions :is(.font-family-toggle,.palette-toggle,#themeToggle,.edit-button) svg { stroke: currentColor; }
+:root .custom-palette-save,
+:root .custom-palette-save svg { color: var(--transport-icon-colour); stroke: currentColor; }
+
+@media (max-width: 600px) {
+  .mobile-actions-toggle-dots i:nth-child(1) { background: var(--date-icon-colour); }
+  .mobile-actions-toggle-dots i:nth-child(2) { background: var(--duration-icon-colour); }
+  .mobile-actions-toggle-dots i:nth-child(3) { background: var(--transport-icon-colour); }
+}
+/* Empty planning messages are Notes in every palette and colour mode. */
+:root .day-card .place-list > .day-note.place-empty-banner,
+:root .day-card .meal-grid > .day-note.meal-empty-banner,
+:root .saved-place-group .saved-grid > .day-note.saved-place-empty {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  height: auto;
+  min-height: 42px;
+  grid-column: 1 / -1 !important;
+  margin: 0;
+  padding: 11px 13px;
+  border: 0;
+  border-left: 4px solid var(--accent);
+  border-radius: 12px;
+  background: var(--card-wash-gradient);
+  box-shadow: none;
+  color: var(--text);
+  font-size: var(--text-small);
+  font-weight: var(--font-weight-regular);
+  line-height: 1.5;
+  text-align: start;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+/* Unified feature-card headings */
+.feature-card-header {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 22px 24px 20px 28px;
+  background: var(--transport-detail-gradient);
+}
+
+:root .feature-card-header h3 {
+  display: inline-flex;
+  width: max-content;
+  max-width: 100%;
+  min-height: 44px;
+  align-items: center;
+  gap: 9px;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 7px 14px;
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background:
+    linear-gradient(var(--surface),var(--surface)) padding-box,
+    var(--section-outline-gradient) border-box;
+  background-clip: padding-box,border-box;
+  box-shadow: 0 8px 18px rgba(48,48,48,.16);
+  color: var(--text);
+  font-size: var(--text-body);
+  font-weight: var(--font-weight-title) !important;
+  letter-spacing: .02em;
+  line-height: 1.2;
+  text-align: left;
+  text-transform: none;
+  -webkit-background-clip: padding-box,border-box;
+  -webkit-text-fill-color: var(--text);
+}
+
+.saved-places-header h3 {
+  flex-wrap: nowrap;
+}
+
+.saved-places-title-icon {
+  flex: 0 0 19px;
+}
+
+.saved-places-title-copy {
+  display: inline-block;
+  width: auto;
+  max-width: calc(100% - 28px);
+  flex: 0 1 auto;
+}
+
+body.is-inline-editing .saved-places-title-copy[contenteditable="true"] {
+  overflow-wrap: normal;
+  white-space: nowrap;
+}
+
+:root .travel-essential-copy small,
+:root .travel-health-copy small {
+  font-weight: 700 !important;
+}
+
+body.is-editing :is(.block-type-travel-essentials,.block-type-stay-amenities,.block-type-saved-places) .editor-card-heading h3 {
+  letter-spacing: .02em;
+  text-transform: none;
+}
+
+body.is-inline-editing .information-card-header h3 > span:last-child[contenteditable="true"] {
+  min-width: 4ch;
+}
+
+@media (max-width: 360px) {
+  .feature-card-header {
+    padding-inline: 20px 16px;
+  }
+
+  :root .feature-card-header h3 {
+    width: 100%;
+  }
+}
+/* Unified editor popup close controls */
+:root :is(.dialog-close,.inline-icon-close,[data-viewer-close]) {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  place-items: center;
+  padding: 0;
+  border: var(--icon-outline-width) solid var(--icon-coral-colour);
+  border-radius: 12px;
+  appearance: none;
+  background: var(--icon-coral-background);
+  color: var(--icon-coral-colour);
+  font-size: 0 !important;
+  line-height: 0;
+  cursor: pointer;
+  transition: border-color var(--motion-fast) var(--ease-standard),background-color var(--motion-fast) var(--ease-standard),color var(--motion-fast) var(--ease-standard),transform var(--motion-fast) var(--ease-standard);
+}
+
+:root :is(.dialog-close,.inline-icon-close,[data-viewer-close])::before,
+:root :is(.dialog-close,.inline-icon-close,[data-viewer-close])::after {
+  content: "";
+  grid-area: 1 / 1;
+  width: 14px;
+  height: var(--icon-line-width);
+  border-radius: 999px;
+  background: currentColor;
+}
+
+:root :is(.dialog-close,.inline-icon-close,[data-viewer-close])::before { transform: rotate(45deg); }
+:root :is(.dialog-close,.inline-icon-close,[data-viewer-close])::after { transform: rotate(-45deg); }
+
+:root :is(.dialog-close,.inline-icon-close,[data-viewer-close]):is(:hover,:focus-visible) {
+  border-color: var(--icon-coral-colour);
+  background: color-mix(in srgb,var(--icon-coral-background) 72%,var(--surface));
+  color: var(--icon-coral-colour);
+}
+
+:root :is(.dialog-close,.inline-icon-close,[data-viewer-close]):focus-visible {
+  outline: 3px solid color-mix(in srgb,var(--icon-coral-colour) 20%,transparent);
+  outline-offset: 2px;
+}
+
+:root :is(.dialog-close,.inline-icon-close,[data-viewer-close]):active { transform: scale(.96); }
+
+.template-pool > .dialog-close,
+.attachment-action-dialog > .dialog-close {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+}
+
+/* Bare feature-card title icons */
+.feature-title-icon {
+  display: grid;
+  width: 19px;
+  height: 19px;
+  flex: 0 0 19px;
+  place-items: center;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: currentColor;
+  -webkit-text-fill-color: currentColor;
+}
+.feature-title-icon svg {
+  width: 18px;
+  height: 18px;
+  color: inherit;
+  stroke: currentColor;
+}
+.information-title-icon { color: var(--icon-coral-colour); }
+.saved-places-title-icon { color: var(--icon-fourth-colour); }

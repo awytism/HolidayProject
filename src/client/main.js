@@ -3,16 +3,23 @@ import { initializePreferences } from "./app/preferences.js";
 import { initializeDateTimePreferences } from "./app/date-time-preferences.js";
 import { initializeLanguage, translateText } from "./app/i18n.js";
 import { initializeScrollTop } from "./app/scroll-top.js";
-import { calculateSectionScrollTop } from "./app/section-navigation.js";
+import { calculateSectionScrollTop, synchronizeSectionNavigation } from "./app/section-navigation.js";
 import { createAuthController } from "./auth/auth-dialog.js";
 import { createAttachmentController } from "./attachments/attachment-controller.js";
 import { renderBlockEditor } from "./editor/block-editor.js";
+import { SECTION_ORDER } from "./sections/registry.js";
+import { getElements } from "./app/elements.js";
 import { createImagePicker } from "./editor/image-picker.js";
+import { isHeroVisible, isSectionTitleVisible, setHeroVisible, setSectionTitleVisible } from "./app/section-title-visibility.js";
+
 import { createInlineEditor } from "./editor/inline-editor.js";
 import { createInlineImageEditor } from "./editor/inline-image-editor.js";
 import { createInlineResourceEditor } from "./editor/inline-resource-editor.js";
 import { createInlineDateTimeEditor } from "./editor/inline-date-time-editor.js";
 import { createInlineTransportEditor } from "./editor/inline-transport-editor.js";
+import { createInlineStructureEditor } from "./editor/inline-structure-editor.js";
+import { createInlineAgendaEditor } from "./editor/inline-agenda-editor.js"; import { createInlineStayEditor } from "./editor/inline-stay-editor.js";
+import { createInlineTravelEssentialsEditor } from "./editor/inline-travel-essentials-editor.js";
 import { mediaUrl } from "./sections/shared.js";
 import { markLegacyMigrationComplete, prepareLoadedState } from "./domain/migrations.js";
 import { ApiError, createApi } from "./services/api.js";
@@ -25,11 +32,11 @@ import {
 import { validateDocument } from "/shared/document-schema.mjs";
 import { deriveTripStats, synchronizeTripStats } from "/shared/trip-stats.mjs";
 
-const SECTION_ORDER = ["transport", "stay", "agenda"];
 const SECTION_TITLE_DEFAULTS = Object.freeze({
-  transportTitle: "Itinerary",
+  transportTitle: "Transit",
   stayTitle: "Accommodation",
   agendaTitle: "Agenda",
+  placesTitle: "Other",
 });
 
 const api = createApi();
@@ -57,7 +64,16 @@ const inlineDateTimeEditor = createInlineDateTimeEditor({
   render,
   showToast,
 });
-const inlineTransportEditor = createInlineTransportEditor({ store });
+const inlineTransportEditor = createInlineTransportEditor({ store, render });
+const inlineStructureEditor = createInlineStructureEditor({
+  store,
+  attachments,
+  language,
+  render,
+});
+const inlineAgendaEditor = createInlineAgendaEditor({ store, render }); const inlineStayEditor = createInlineStayEditor({ store, render });
+const inlineTravelEssentialsEditor = createInlineTravelEssentialsEditor({ store, render });
+
 let toastTimer;
 let heroStatsFrame;
 let placeRouteWidthFrame;
@@ -108,12 +124,33 @@ function bindEvents() {
   });
   elements.brand.addEventListener("click", (event) => {
     event.preventDefault();
-    switchSection("transport", elements.hero);
+    switchSection("transport", elements.hero.hidden ? navigationTarget("transport") : elements.hero);
   });
   elements.edit.addEventListener("click", () => {
     if (store.getState().editing) saveInlineEditing();
     else startInlineEditing();
   });
+  elements.sectionsRoot.addEventListener("click", handleSectionTitleAction);
+  elements.sectionsRoot.addEventListener("click", handleHeroAction);
+}
+
+function handleSectionTitleAction(event) {
+  const button = event.target.closest("[data-section-title-action]");
+  if (!button || !store.getState().editing) return;
+  const section = button.dataset.section;
+  const visible = button.dataset.sectionTitleAction === "restore";
+  store.mutate((document) => setSectionTitleVisible(document, section, visible));
+  render();
+  if (visible) elements.sectionTitleLabels[`${section}Title`]?.focus();
+}
+
+function handleHeroAction(event) {
+  const button = event.target.closest("[data-hero-action]");
+  if (!button || !store.getState().editing) return;
+  const visible = button.dataset.heroAction === "restore";
+  store.mutate((document) => setHeroVisible(document, visible));
+  render();
+  if (visible) elements.destination.focus();
 }
 
 async function startInlineEditing() {
@@ -122,7 +159,7 @@ async function startInlineEditing() {
     await auth.ensureAuthenticated();
     store.beginEdit();
     render();
-    elements.brandName.focus();
+    elements.destination.focus();
     showToast("Edit text directly or select any icon");
   } catch (error) {
     showToast(error.message);
@@ -215,7 +252,8 @@ function initializeMealRouteToggles() {
   });
 }
 
-function switchSection(section, target = elements.sectionTargets[section]) {
+function switchSection(section, target = navigationTarget(section)) {
+  if (!target) return;
   store.setActive(section);
   history.replaceState(null, "", "#" + section);
   elements.nav.forEach((button) => setNavState(button, section));
@@ -231,15 +269,22 @@ function switchSection(section, target = elements.sectionTargets[section]) {
 }
 function setInitialSection() {
   const hash = location.hash.slice(1);
-  store.setActive(hash === "entertainment" ? "agenda" : ["transport", "stay", "agenda"].includes(hash) ? hash : "transport");
+  store.setActive(hash === "entertainment" ? "agenda" : ["transport", "stay", "agenda", "places"].includes(hash) ? hash : "transport");
+}
+
+function navigationTarget(section) {
+  return elements.sectionTitleHeadings[section] ?? elements.sectionTargets[section];
 }
 
 function render() {
   const state = store.getState();
   const tripDocument = store.getDocument();
+  stageTransitHeadingForRender();
   document.body.classList.remove("is-editing");
   document.body.classList.toggle("is-inline-editing", state.editing);
+  renderHeroBanner(tripDocument.meta, state.editing);
   renderMeta(tripDocument, false);
+  renderSectionTitlePills(tripDocument.meta, state.editing);
   elements.nav.forEach((button) => setNavState(button, state.activeSection));
   elements.edit.classList.toggle("is-saving", state.editing);
   elements.edit.setAttribute("aria-pressed", String(state.editing));
@@ -248,44 +293,73 @@ function render() {
   for (const section of SECTION_ORDER) {
     renderBlockEditor(elements.sectionRoots[section], store, attachments, section, { renderEditing: false });
   }
+  placeTransitHeadingAfterEssentials();
+  inlineStructureEditor.apply();
   language.localize();
   inlineEditor.apply();
+  synchronizeBrowserTitle();
   inlineImageEditor.apply();
   inlineResourceEditor.apply();
   inlineDateTimeEditor.apply();
   inlineTransportEditor.apply();
+  inlineAgendaEditor.apply(); inlineStayEditor.apply();
+  inlineTravelEssentialsEditor.apply();
+  synchronizeSectionNavigation(tripDocument.meta, elements, SECTION_TITLE_DEFAULTS);
   scheduleHeroStatsWidth();
   schedulePlaceRouteWidths();
   scheduleBilingualLayout();
   window.dispatchEvent(new CustomEvent("dashboardrender"));
 }
 
+function stageTransitHeadingForRender() {
+  const heading = elements.sectionTitleHeadings.transport;
+  const root = elements.sectionRoots.transport;
+  const pageSection = root?.closest("[data-page-section]");
+  if (!heading || !root || !pageSection || !root.contains(heading)) return;
+  pageSection.insertBefore(heading, root);
+}
+
+function placeTransitHeadingAfterEssentials() {
+  const heading = elements.sectionTitleHeadings.transport;
+  const essentials = elements.sectionRoots.transport?.querySelector(".block-type-travel-essentials");
+  if (!heading || !essentials) return;
+  essentials.insertAdjacentElement("afterend", heading);
+}
+
+function synchronizeBrowserTitle() {
+  document.title = elements.destination.textContent.trim() || "Travel Plan";
+}
+
 function renderMeta(tripDocument, editing) {
   const { meta } = tripDocument;
   const fields = {
-    brandName: elements.brandName,
     destination: elements.destination,
     region: elements.region,
   };
   for (const [field, element] of Object.entries(fields)) {
-    element.textContent = field === "brandName" ? (meta.brandName ?? "Dudu & Ale") : meta[field];
+    element.textContent = meta[field];
     element.contentEditable = String(editing);
     element.dataset.metaField = field;
   }
+  const itineraryLabel = language.translate("Itinerary");
+  elements.brandName.textContent = itineraryLabel;
+  elements.brandName.contentEditable = "false";
+  elements.brandName.dataset.inlineStatic = "";
+  delete elements.brandName.dataset.metaField;
   for (const [field, fallback] of Object.entries(SECTION_TITLE_DEFAULTS)) {
     const element = elements.sectionTitleLabels[field];
     element.textContent = meta[field] ?? fallback;
     element.contentEditable = String(editing);
     element.dataset.metaField = field;
   }
-  const stats = deriveTripStats(tripDocument);
+  const stats = displayTripStats(tripDocument);
   elements.tripDays.textContent = formatHeroCount(stats.days, "day", "days");
   elements.tripLegs.textContent = formatHeroCount(stats.legs, "leg", "legs");
   for (const element of [elements.tripDays, elements.tripLegs]) {
     element.contentEditable = "false";
     delete element.dataset.metaField;
   }
-  elements.brand.setAttribute("aria-label", meta.brandName ?? "Dudu & Ale");
+  elements.brand.setAttribute("aria-label", itineraryLabel);
   elements.travelDates.textContent = formatDisplayDateRange(meta.startDate, meta.endDate);
   elements.travelDates.hidden = editing;
   elements.travelDateEditor.hidden = !editing;
@@ -297,6 +371,39 @@ function renderMeta(tripDocument, editing) {
   elements.heroCoverButtonLabel.textContent = heroImageLabel;
   elements.heroCoverButton.setAttribute("aria-label", heroImageLabel);
   elements.heroCoverButton.title = heroImageLabel;
+}
+
+function renderHeroBanner(meta, editing) {
+  const visible = isHeroVisible(meta);
+  elements.hero.hidden = !visible;
+  elements.heroRemoveButton.hidden = !editing || !visible;
+  elements.heroRestoreButton.hidden = !editing || visible;
+}
+
+function renderSectionTitlePills(meta, editing) {
+  for (const section of SECTION_ORDER) {
+    const visible = isSectionTitleVisible(meta, section);
+    const heading = elements.sectionTitleHeadings[section];
+    const pill = elements.sectionTitles[section];
+    const pageSection = heading.closest("[data-page-section]");
+    heading.hidden = !editing && !visible;
+    heading.classList.toggle("is-title-hidden", !visible);
+    pill.hidden = !visible;
+    heading.querySelector('[data-section-title-action="remove"]').hidden = !editing || !visible;
+    heading.querySelector('[data-section-title-action="restore"]').hidden = !editing || visible;
+    if (visible) {
+      pageSection.removeAttribute("aria-label");
+      pageSection.setAttribute("aria-labelledby", pill.id);
+    } else {
+      pageSection.removeAttribute("aria-labelledby");
+      pageSection.setAttribute("aria-label", meta[`${section}Title`] ?? SECTION_TITLE_DEFAULTS[`${section}Title`]);
+    }
+  }
+}
+
+function displayTripStats(tripDocument) {
+  if (tripDocument.meta.placeholderMode === true) return { days: 0, legs: 0 };
+  return deriveTripStats(tripDocument);
 }
 
 function applyHeroCover(cover) {
@@ -314,18 +421,11 @@ function applyHeroCover(cover) {
   elements.hero.style.setProperty("--hero-image-position", position);
 }
 
-function scheduleHeroStatsWidth() {
-  window.cancelAnimationFrame(heroStatsFrame);
-  heroStatsFrame = window.requestAnimationFrame(() => {
-    heroStatsFrame = 0;
-    const tripDocument = store.getDocument();
-    if (tripDocument) synchronizeHeroStatsWidth(tripDocument);
-  });
-}
+function scheduleHeroStatsWidth() { window.cancelAnimationFrame(heroStatsFrame); heroStatsFrame = window.requestAnimationFrame(() => { heroStatsFrame = 0; const tripDocument = store.getDocument(); if (tripDocument) synchronizeHeroStatsWidth(tripDocument); }); }
 
 function synchronizeHeroStatsWidth(tripDocument) {
   const { meta } = tripDocument;
-  const stats = deriveTripStats(tripDocument);
+  const stats = displayTripStats(tripDocument);
   const cards = [...elements.heroStats.querySelectorAll(".stat")];
   const variants = ["en-GB", "pt-BR"].flatMap((locale) => [
     [translateText("Date", locale), formatDisplayDateRangeForLocale(meta.startDate, meta.endDate, locale, getDateDisplayFormat())],
@@ -341,8 +441,7 @@ function synchronizeHeroStatsWidth(tripDocument) {
     probe.removeAttribute("style");
     probe.querySelector(".hero-date-editor")?.remove();
     probe.querySelectorAll("[id]").forEach((element) => element.removeAttribute("id"));
-    const labelElement = probe.querySelector("small");
-    const valueElement = probe.querySelector("strong");
+    const [labelElement, valueElement] = [probe.querySelector("small"), probe.querySelector("strong")];
     labelElement.textContent = label;
     valueElement.hidden = false;
     valueElement.textContent = value;
@@ -494,63 +593,4 @@ function showToast(message) {
   elements.toast.textContent = language.translate(message);
   elements.toast.classList.add("is-visible");
   toastTimer = window.setTimeout(() => elements.toast.classList.remove("is-visible"), 2600);
-}
-
-function getElements() {
-  const hero = document.querySelector(".hero");
-  const sectionRoots = Object.fromEntries(SECTION_ORDER.map((section) => [
-    section,
-    document.querySelector('[data-section-root="' + section + '"]'),
-  ]));
-  const sectionTargets = {
-    transport: document.querySelector("#transportTitle"),
-    stay: document.querySelector("#stayTitle"),
-    agenda: document.querySelector("#agendaTitle"),
-  };
-  return {
-    sectionsRoot: document.querySelector("#sectionsRoot"),
-    sectionRoots,
-    sectionTargets,
-    sectionTitleLabels: {
-      transportTitle: document.querySelector("#transportTitleLabel"),
-      stayTitle: document.querySelector("#stayTitleLabel"),
-      agendaTitle: document.querySelector("#agendaTitleLabel"),
-    },
-    hero,
-    heroStats: document.querySelector(".hero-stats"),
-    workspace: document.querySelector(".workspace-bar"),
-    brandName: document.querySelector("#brandName"),
-    destination: document.querySelector("#destination"),
-    region: document.querySelector("#region"),
-    travelDates: document.querySelector("#travelDates"),
-    travelDateEditor: document.querySelector("#travelDateEditor"),
-    tripStartDate: document.querySelector("#tripStartDate"),
-    tripEndDate: document.querySelector("#tripEndDate"),
-    tripDays: document.querySelector("#tripDays"),
-    tripLegs: document.querySelector("#tripLegs"),
-    heroCoverButton: document.querySelector("#heroCoverButton"),
-    heroCoverButtonLabel: document.querySelector("#heroCoverButtonLabel"),
-    brand: document.querySelector(".brand"),
-    nav: [...document.querySelectorAll("[data-view]")],
-    mobileActionsToggle: document.querySelector("#mobileActionsToggle"),
-    workspaceActions: document.querySelector("#workspaceActions"),
-    edit: document.querySelector("#editButton"),
-    editLabel: document.querySelector("#editButtonLabel"),
-    language: [...document.querySelectorAll("[data-locale]")],
-    toast: document.querySelector("#toast"),
-    preferences: {
-      theme: document.querySelector("#themeToggle"),
-      fontDecrease: document.querySelector("#fontDecrease"),
-      fontIncrease: document.querySelector("#fontIncrease"),
-      fontStatus: document.querySelector("#fontScaleStatus"),
-      paletteControl: document.querySelector("#paletteControl"),
-      paletteToggle: document.querySelector("#paletteToggle"),
-      paletteMenu: document.querySelector("#paletteMenu"),
-      paletteOptions: [...document.querySelectorAll("[data-palette]")],
-    },
-    scrollTop: {
-      button: document.querySelector("#scrollTop"),
-      sentinel: document.querySelector("#topSentinel"),
-    },
-  };
 }

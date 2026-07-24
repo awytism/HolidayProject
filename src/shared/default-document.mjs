@@ -13,12 +13,13 @@ export function createDefaultDocument() {
       startDate: "2026-10-24",
       endDate: "2026-11-01",
       days: "9",
-      legs: "4",
+      legs: "2",
     },
     sections: {
       transport: createTransportBlocks(),
       stay: createStayBlocks(),
       agenda: createAgendaBlocks(),
+      places: createPlacesBlocks(),
     },
   };
 }
@@ -46,11 +47,14 @@ function anatomySpace(id, label, bedId, bedLabel) {
 
 function createTransportBlocks() {
   return [
+    createTravelEssentialsBlock(),
     contentBlock("transport-flight-outbound", "flight", {
       direction: "Ida",
       directionMode: "outbound",
       date: "2026-10-24",
       provider: "LATAM Airlines Brasil",
+      flightNumber: "LA3962",
+      aircraft: "Airbus A320",
       origin: "Aeroporto Internacional Antônio Carlos Jobim",
       originCity: "Rio de Janeiro",
       destination: "Aeroporto Internacional Salgado Filho",
@@ -65,6 +69,7 @@ function createTransportBlocks() {
       stop: "Direto",
       serviceType: "direct",
       stopCount: 0,
+      segments: [],
       details: "LA3962 · Airbus A320",
       seats: "Assentos a confirmar",
       seatCount: 2,
@@ -75,57 +80,13 @@ function createTransportBlocks() {
       originCover: rioAirportCover(),
       destinationCover: null,
     }),
-    contentBlock("transport-bus-outbound", "transfer", {
-      direction: "Ida",
-      directionMode: "outbound",
-      date: "2026-10-24",
-      provider: "Telch Turismo",
-      origin: "Aeroporto Internacional Salgado Filho",
-      destination: "Casa Sol da Serra",
-      departure: "TBD",
-      arrival: "TBD",
-      duration: "TBD",
-      departureDate: "2026-10-24",
-      arrivalDate: "2026-10-24",
-      departureTimeZone: "America/Sao_Paulo",
-      arrivalTimeZone: "America/Sao_Paulo",
-      seats: "Transfer privativo",
-      seatCount: 2,
-      notes: "",
-      mapUrl: "",
-      websiteUrl: "",
-      providerCover: null,
-      originCover: null,
-      destinationCover: null,
-    }),
-    contentBlock("transport-bus-return", "transfer", {
-      direction: "Volta",
-      directionMode: "inbound",
-      date: "2026-11-01",
-      provider: "Telch Turismo",
-      origin: "Casa Sol da Serra",
-      destination: "Aeroporto Internacional Salgado Filho",
-      departure: "TBD",
-      arrival: "TBD",
-      duration: "TBD",
-      departureDate: "2026-11-01",
-      arrivalDate: "2026-11-01",
-      departureTimeZone: "America/Sao_Paulo",
-      arrivalTimeZone: "America/Sao_Paulo",
-      seats: "Transfer privativo",
-      seatCount: 2,
-      notes: "",
-      mapUrl: "",
-      websiteUrl: "",
-      providerCover: null,
-      originCover: null,
-      destinationCover: null,
-    }),
     contentBlock("transport-flight-return", "flight", {
       direction: "Volta",
       directionMode: "inbound",
       date: "2026-11-01",
       provider: "LATAM Airlines",
+      flightNumber: "LA3963",
+      aircraft: "Airbus A320",
       origin: "Aeroporto Internacional Salgado Filho",
       originCity: "Porto Alegre",
       destination: "Aeroporto Internacional Antônio Carlos Jobim",
@@ -140,6 +101,7 @@ function createTransportBlocks() {
       stop: "Direto",
       serviceType: "direct",
       stopCount: 0,
+      segments: [],
       details: "Voo direto",
       seats: "5A, 5C",
       seatCount: 2,
@@ -151,6 +113,29 @@ function createTransportBlocks() {
       destinationCover: rioAirportCover(),
     }),
   ];
+}
+
+export function createTravelEssentialsBlock(id = "travel-essentials") {
+  return {
+    id,
+    type: "travel-essentials",
+    cover: null,
+    layout: { span: 12 },
+    data: {
+      title: "INFORMATION",
+      visa: "not-required",
+      currency: "Brazilian Real (BRL)",
+      drivingSide: "right",
+      plugType: "Type N",
+      voltage: "127 / 220 V",
+      frequency: "60 Hz",
+      language: "Portuguese",
+      timeZone: "BRT (UTC−3)",
+      healthPrecautions: "Travel insurance recommended",
+      vaccines: "Routine vaccines up to date",
+      additionalFacts: [],
+    },
+  };
 }
 
 const STAY_ADDRESS = "R. Carlos Lengler Filho, 173 - Casa 01 - Planalto, Gramado - RS, 95670-000";
@@ -180,6 +165,12 @@ function createStayBlocks() {
       nights: "8 noites",
       mapUrl: "https://www.google.com/maps/search/?api=1&query=Casa+Sol+da+Serra+Gramado+RS",
       websiteUrl: "https://www.booking.com/hotel/br/casa-sol-da-serra-hidro-bikes-centro.html?aid=2441557",
+      propertyPills: [
+        { id: "property-pill-home", iconKey: "home", label: "Entire holiday home" },
+        { id: "property-pill-bed", iconKey: "bed", label: "3 bedrooms · 4 beds" },
+        { id: "property-pill-bath", iconKey: "amenity-bathtub", label: "1 bathroom" },
+        { id: "property-pill-view", iconKey: "mountain", label: "90 m²" },
+      ],
     }, {
       url: "/assets/casa-sol-da-serra.webp",
       alt: "Casa Sol da Serra and its garden in Gramado",
@@ -259,7 +250,7 @@ function bookingAmenityGroups() {
       ["sofa", "Sofa and seating area", "chair"],
       ["fireplace", "Fireplace and heating", "fire"],
       ["air-conditioning", "Air conditioning and fan", "snowflake"],
-      ["smoke-free", "Smoke-free home", "shield"],
+      ["smoke-free", "Smoke-free home", "non-smoking"],
     ]),
     amenityGroup("media-technology", "Work and Play", [
       ["free-wifi", "Fast, free Wi-Fi", "wifi"],
@@ -288,8 +279,13 @@ function createAgendaBlocks() {
     agendaDay("agenda-oct-25", "2026-10-31", "Snow Day", ["Snowland"], ["Casa do Sol", "Snowland", "Casa do Sol"]),
     agendaDay("agenda-nov-01", "2026-11-01", "Departure", ["Aeroporto Internacional Salgado Filho", "Aeroporto Internacional Antônio Carlos Jobim"], ["", "", ""]),
   ];
-  return [...days, contentBlock("agenda-saved-places", "saved-places", {
-    title: "Other Places",
+  return days;
+}
+
+function createPlacesBlocks() {
+  return [contentBlock("agenda-saved-places", "saved-places", {
+    title: "Places of Interest",
+    titleVisible: true,
     places: [
       savedPlace("Restaurant La Table D´Or Méditerranée", "restaurant"),
       savedPlace("Edelweiss", "restaurant"),

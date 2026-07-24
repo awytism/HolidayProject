@@ -260,6 +260,36 @@ body {
   white-space: nowrap;
 }
 
+/* Highlight glyphs replace the former four-pixel dots while retaining each
+ * amenity group's accent colour. Their small footprint keeps the rows compact. */
+.amenity-card .amenity-group .amenity-icon {
+  display: grid;
+  width: 18px !important;
+  min-width: 18px !important;
+  height: 18px !important;
+  min-height: 18px !important;
+  flex: 0 0 18px !important;
+  place-items: center;
+  padding: 0;
+  border: 0 !important;
+  border-radius: 0;
+  background: transparent !important;
+  color: var(--amenity-accent-colour) !important;
+}
+.amenity-card .amenity-group .amenity-icon svg {
+  width: 15px !important;
+  height: 15px !important;
+  color: inherit;
+}
+.amenity-group li > [data-inline-stay-field="item-label"] {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+body.is-inline-editing .amenity-card .amenity-icon [data-inline-icon-key] {
+  outline-offset: -1px;
+}
+
 @container (max-width: 520px) {
   .stay-dates,
   .meal-grid,

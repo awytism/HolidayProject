@@ -20,7 +20,7 @@ import {
   updateAnatomy,
 } from "./commands.js";
 import { runFoodAction, runPlaceAction, updateFoodInput, updatePlaceInput } from "./agenda-editor.js";
-import { getSectionConfig } from "../sections/registry.js";
+import { createCardBlock, getCardConfig, getCardTypes } from "../sections/registry.js";
 import { escapeHtml } from "../utils/html.js";
 import { renderCover } from "../sections/shared.js";
 import { AMENITY_CATALOG, searchAmenities } from "../domain/amenity-catalog.js";
@@ -34,7 +34,7 @@ const COLOR_HEADER_TYPES = new Set([
   "table", "image-card", "icon-list", "checklist", "facts", "link-card", "note",
   "stay-amenities", "stay-anatomy", "essentials", "link", "saved-places",
 ]);
-const ATTACHMENT_HIDDEN_TYPES = new Set(["stay-amenities", "stay-distances", "saved-places"]);
+const ATTACHMENT_HIDDEN_TYPES = new Set(["travel-essentials", "stay-amenities", "stay-distances", "saved-places"]);
 const INLINE_ATTACHMENT_TYPES = new Set(["flight", "transfer", "stay-summary", "day"]);
 const REMOVED_STAY_TYPES = new Set(["stay-anatomy", "essentials"]);
 
@@ -76,18 +76,17 @@ const INPUT_HANDLERS = [
 export function renderBlockEditor(root, store, attachments, section = store.getState().activeSection, options = {}) {
   const state = store.getState();
   const document = store.getDocument();
-  const config = getSectionConfig(section);
   const renderEditing = state.editing && options.renderEditing !== false;
   const blocks = document.sections[section].filter((block) => (
     section !== "stay" || !REMOVED_STAY_TYPES.has(block.type)
   ));
   const content = blocks.length
-    ? blocks.map((block) => renderBlock(block, config, renderEditing, section, {
+    ? blocks.map((block) => renderBlock(block, getCardConfig(block.type, section), renderEditing, section, {
       attachments,
       inlineEditing: state.editing,
     })).join("")
-    : renderEmpty(renderEditing);
-  root.innerHTML = `<div class="block-grid section-${section}-grid">${content}</div>${renderEditing ? renderAddMenu(config) : ""}`;
+    : renderEmpty(state.editing);
+  root.innerHTML = `<div class="block-grid section-${section}-grid">${content}</div>${renderEditing ? renderAddMenu() : ""}`;
   bindBrokenImages(root);
   layoutBlockGrid(root);
 }
@@ -184,7 +183,7 @@ export function bindBlockEditor(root, context) {
 
 function renderBlock(block, config, editing, section, options) {
   const { attachments, inlineEditing } = options;
-  const span = block.layout?.span ?? 12;
+  const span = [4, 6, 12].includes(block.layout?.span) ? block.layout.span : 12;
   const attachmentSection = shouldRenderAttachments(block.type, editing) ? attachments?.render(block.id, section, editing) ?? "" : "";
   const presentation = blockPresentation(block, Boolean(attachmentSection), inlineEditing);
   const toolbar = editing ? renderToolbar(span, presentation.supportsColorHeader, presentation.colorHeader) : "";
@@ -206,7 +205,7 @@ function blockPresentation(block, hasAttachments, inlineEditing) {
 }
 
 function renderToolbar(span, supportsColorHeader, colorHeader) {
-  const options = [[12, "Full"], [8, "Two-thirds"], [6, "Half"], [4, "Third"]]
+  const options = [[4, "1/3"], [6, "1/2"], [12, "Full"]]
     .map(([value, label]) => `<option value="${value}" ${span === value ? "selected" : ""}>${label}</option>`).join("");
   const headerToggle = supportsColorHeader ? actionButton("header", "Color Header", "palette", { pressed: colorHeader }) : "";
   return `<div class="block-toolbar" aria-label="Controles do bloco de conteúdo">${actionButton("drag", "Arrastar para reordenar", "grip", { className: "drag-handle", draggable: false, align: "start" })}${actionButton("left", "Mover para a esquerda", "arrow-left")}${actionButton("right", "Mover para a direita", "arrow-right")}${actionButton("up", "Mover para cima", "arrow-up")}${actionButton("down", "Mover para baixo", "arrow-down")}<label class="block-size"><span>Tamanho</span><select data-block-span aria-label="Largura do bloco de conteúdo">${options}</select></label>${headerToggle}${actionButton("cover", "Imagem de capa", "image")}${actionButton("insert", "Inserir bloco", "panel-plus")}${actionButton("template", "Salvar como modelo", "bookmark")}${actionButton("duplicate", "Duplicar bloco", "copy")}${actionButton("delete", "Excluir bloco", "trash", { className: "delete-action", align: "end" })}</div>`;
@@ -226,14 +225,14 @@ function actionButton(action, label, icon, options = {}) {
   return `<button ${attributes.join(" ")}>${renderActionIcon(icon)}</button>`;
 }
 
-function renderAddMenu(config) {
-  const options = config.addTypes.map((item) => `<button type="button" data-add-type="${escapeHtml(item.type)}">+ ${escapeHtml(item.label)}</button>`).join("");
+function renderAddMenu() {
+  const options = getCardTypes().map((item) => `<button type="button" data-add-type="${escapeHtml(item.type)}">+ ${escapeHtml(item.label)}</button>`).join("");
   return `<div class="add-block"><span>Adicionar um bloco</span><div class="add-options"><button type="button" data-open-templates>Ver modelos</button>${options}</div></div>`;
 }
 
 function renderEmpty(editing) {
-  const hint = editing ? "Use “Adicionar um bloco” abaixo para começar esta seção." : "Desbloqueie a edição para adicionar conteúdo.";
-  return `<div class="empty-state"><strong>Esta seção está vazia</strong><span>${hint}</span></div>`;
+  const hint = editing ? "Use “Add card” below to start this section." : "Start editing to add content.";
+  return `<div class="empty-state"><strong>This section is empty</strong><span>${hint}</span></div>`;
 }
 
 function activateSectionForTarget(target, context) {
@@ -285,7 +284,7 @@ function runBlockAction(button, context) {
 
 function runAddBlock(button, context) {
   const section = context.store.getState().activeSection;
-  const block = getSectionConfig(section).createBlock(button.dataset.addType);
+  const block = createCardBlock(button.dataset.addType, section);
   mutate(context, (document) => addBlock(document, section, block));
 }
 

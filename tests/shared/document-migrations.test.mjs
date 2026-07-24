@@ -34,9 +34,9 @@ test("deterministically migrates v2 without mutating content or existing IDs", (
     startDate: "2026-10-24",
     endDate: "2026-11-01",
     days: "9",
-    legs: "4",
+    legs: "2",
   });
-  assert.equal(current.sections.transport[0].data.date, "2026-10-24");
+  assert.equal(current.sections.transport.find((block) => block.type === "flight").data.date, "2026-10-24");
   assert.deepEqual(
     current.sections.agenda.slice(0, 2).map((block) => block.data.date),
     ["2026-10-24", "2026-10-25"],
@@ -74,11 +74,40 @@ test("adds null covers to every block and agenda place", () => {
   for (const blocks of Object.values(migrated.sections)) {
     for (const block of blocks) assert.equal(block.cover, null);
   }
-  for (const block of migrated.sections.agenda) {
-    for (const place of block.data.places ?? []) assert.equal(place.cover, null);
+  for (const blocks of Object.values(migrated.sections)) {
+    for (const block of blocks) {
+      for (const place of block.data.places ?? []) assert.equal(place.cover, null);
+    }
   }
 });
 
+test("moves saved places from Agenda into a real Other section in v13", () => {
+  const source = createDefaultDocument();
+  const savedPlaces = structuredClone(source.sections.places);
+  source.schemaVersion = 12;
+  source.sections.agenda.push(...source.sections.places);
+  delete source.sections.places;
+  const before = structuredClone(source);
+
+  const migrated = migrateDocument(source);
+
+  assert.deepEqual(source, before);
+  assert.equal(migrated.schemaVersion, 15);
+  assert.equal(migrated.sections.agenda.some((block) => block.type === "saved-places"), false);
+  assert.deepEqual(migrated.sections.places, savedPlaces);
+  assert.equal(validateDocument(migrated), true);
+});
+
+test("renames only the legacy holiday-name placeholder to Itinerary", () => {
+  const legacy = createDefaultDocument();
+  legacy.schemaVersion = 14;
+  legacy.meta.brandName = "Your Holiday Name";
+  const personalised = structuredClone(legacy);
+  personalised.meta.brandName = "Dudu & Ale";
+
+  assert.equal(migrateDocument(legacy).meta.brandName, "Itinerary");
+  assert.equal(migrateDocument(personalised).meta.brandName, "Dudu & Ale");
+});
 test("is idempotent for valid current documents while returning an isolated clone", () => {
   const current = migrateDocument(createV2Document());
   const snapshot = structuredClone(current);
@@ -128,7 +157,7 @@ test("upgrades v6 landmark cards with cycling routes and optional covers", () =>
   const migratedDistances = migrated.sections.stay.find((block) => block.type === "stay-distances");
 
   assert.deepEqual(source, snapshot);
-  assert.equal(migrated.schemaVersion, 12);
+  assert.equal(migrated.schemaVersion, 15);
   assert.equal(validateDocument(migrated), true);
   assert.deepEqual(migratedDistances.data.items.map((item) => [item.cyclingDistance, item.cyclingTime]), [
     ["0.6 km", "2 m"], ["1.1 km", "4 m"], ["2.0 km", "7 m"], ["1.6 km", "6 m"],
@@ -148,9 +177,9 @@ test("upgrades v7 transport cards with origin and destination media", () => {
   const migrated = migrateDocument(source);
 
   assert.deepEqual(source, snapshot);
-  assert.equal(migrated.schemaVersion, 12);
+  assert.equal(migrated.schemaVersion, 15);
   assert.equal(validateDocument(migrated), true);
-  assert.deepEqual(migrated.sections.transport.flatMap((block) => [block.data.originCover, block.data.destinationCover]), Array(8).fill(null));
+  assert.deepEqual(migrated.sections.transport.filter((block) => ["flight", "transfer"].includes(block.type)).flatMap((block) => [block.data.originCover, block.data.destinationCover]), Array(4).fill(null));
 });
 
 test("uses a deterministic collision-free ID for the seeded anatomy", () => {
@@ -216,6 +245,8 @@ function createV2Document() {
   const document = createDefaultDocument();
   downgradeDateFields(document);
   document.schemaVersion = 2;
+  document.sections.agenda.push(...document.sections.places);
+  delete document.sections.places;
   document.sections.stay = document.sections.stay
     .filter((block) => block.type !== "stay-anatomy")
     .map(downgradeStayBlock);
@@ -283,9 +314,9 @@ function randomText(random, prefix) {
 }
 
 function assertExistingIdsPreserved(source, migrated) {
-  const migratedIds = sectionIds(migrated);
+  const migratedIds = new Set(Object.values(sectionIds(migrated)).flat());
   for (const [section, ids] of Object.entries(sectionIds(source))) {
-    for (const id of ids) assert.equal(migratedIds[section].includes(id), true, `${section}:${id}`);
+    for (const id of ids) assert.equal(migratedIds.has(id), true, `${section}:${id}`);
   }
 }
 
@@ -322,7 +353,7 @@ test("upgrades v8 Agenda places with optional route values", () => {
   const migrated = migrateDocument(source);
 
   assert.deepEqual(source, snapshot);
-  assert.equal(migrated.schemaVersion, 12);
+  assert.equal(migrated.schemaVersion, 15);
   assert.equal(validateDocument(migrated), true);
   for (const block of migrated.sections.agenda) {
     for (const place of block.data.places ?? []) {
@@ -351,7 +382,7 @@ test("upgrades the imported Casa do Sol record without replacing its uploaded co
   const migrated = migrateDocument(source);
   const migratedStay = migrated.sections.stay.find((block) => block.type === "stay-summary");
 
-  assert.equal(migrated.schemaVersion, 12);
+  assert.equal(migrated.schemaVersion, 15);
   assert.equal(migratedStay.data.name, "Casa Sol da Serra");
   assert.equal(migratedStay.data.subtitle, "Incrível Casa com Hidro e Bikes");
   assert.equal(migratedStay.data.checkinTime, "14:00");
@@ -374,7 +405,7 @@ test("upgrades v10 meal options with editable route distances", () => {
   const houseMeal = migratedOptions.find((option) => option.name === "Casa do Sol");
   const waterParkMeal = migratedOptions.find((option) => option.name === "Acquamotion");
 
-  assert.equal(migrated.schemaVersion, 12);
+  assert.equal(migrated.schemaVersion, 15);
   assert.equal(validateDocument(migrated), true);
   assert.deepEqual([
     houseMeal.drivingDistance,
@@ -408,7 +439,7 @@ test("upgrades v11 meal options with route times for the meal-card selector", ()
   const houseMeal = migratedOptions.find((option) => option.name === "Casa do Sol");
   const waterParkMeal = migratedOptions.find((option) => option.name === "Acquamotion");
 
-  assert.equal(migrated.schemaVersion, 12);
+  assert.equal(migrated.schemaVersion, 15);
   assert.equal(validateDocument(migrated), true);
   assert.deepEqual([
     houseMeal.drivingTime,

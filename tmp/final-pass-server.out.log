@@ -1,0 +1,9 @@
+
+> gramado-tripboard@2.1.1 start
+> node scripts/start-server.mjs
+
+Port 4177 is already in use; trying the next candidate.
+Port 4277 is already in use; trying the next candidate.
+Starting Gramado Tripboard on port 4377...
+Listening on 0.0.0.0:4377; open http://127.0.0.1:4377 on this Mac
+Gramado Tripboard listening at http://0.0.0.0:4377

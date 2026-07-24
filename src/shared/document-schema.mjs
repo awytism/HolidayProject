@@ -1,7 +1,7 @@
 import { isIsoDate, parseIsoDate } from "./date-utils.mjs";
 import { isValidTimeZone } from "./transport-duration.mjs";
 
-export const DOCUMENT_SCHEMA_VERSION = 12;
+export const DOCUMENT_SCHEMA_VERSION = 15;
 
 const LIMITS = Object.freeze({
   blocks: 200,
@@ -22,10 +22,20 @@ const PRIORITIES = new Set(["high", "medium", "low"]);
 const PLACE_CATEGORIES = new Set(["restaurant", "landmark"]);
 const TRANSPORT_DIRECTIONS = new Set(["outbound", "inbound"]);
 const FLIGHT_SERVICE_TYPES = new Set(["direct", "layover"]);
+const VISA_REQUIREMENTS = new Set(["not-required", "required", "arrival", "check"]);
+const DRIVING_SIDES = new Set(["right", "left"]);
+const SECTION_NAMES = new Set(["transport", "stay", "agenda", "places"]);
+const CONTENT_TYPES = new Set([
+  ...GENERIC_TYPES,
+  "flight", "transfer", "travel-essentials",
+  "stay-summary", "stay-amenities", "stay-distances", "stay-anatomy", "essentials", "link",
+  "day", "saved-places",
+]);
 const SECTION_TYPES = Object.freeze({
-  transport: new Set([...GENERIC_TYPES, "flight", "transfer"]),
-  stay: new Set([...GENERIC_TYPES, "stay-summary", "stay-amenities", "stay-distances", "stay-anatomy", "essentials", "link"]),
-  agenda: new Set([...GENERIC_TYPES, "day", "saved-places"]),
+  transport: CONTENT_TYPES,
+  stay: CONTENT_TYPES,
+  agenda: CONTENT_TYPES,
+  places: CONTENT_TYPES,
 });
 
 const TEXT_FIELDS = Object.freeze({
@@ -40,6 +50,7 @@ const TEXT_FIELDS = Object.freeze({
 const TYPE_VALIDATORS = Object.freeze({
   flight: validateTextBlock,
   transfer: validateTextBlock,
+  "travel-essentials": validateTravelEssentials,
   "stay-summary": validateTextBlock,
   "stay-amenities": validateStayAmenities,
   "stay-distances": validateStayDistances,
@@ -62,7 +73,11 @@ export function validateDocument(document) {
   if (document.schemaVersion !== DOCUMENT_SCHEMA_VERSION) throw new TypeError("Unsupported document schema");
   assertRecord(document.meta, "meta");
   assertTextFields(document.meta, ["destination", "region", "startDate", "endDate", "days", "legs"], "meta", LIMITS.label);
-  assertOptionalTextFields(document.meta, ["brandName", "transportTitle", "stayTitle", "agendaTitle"], "meta", LIMITS.label);
+  assertOptionalTextFields(document.meta, ["brandName", "transportTitle", "stayTitle", "agendaTitle", "placesTitle"], "meta", LIMITS.label);
+  validateHiddenSectionTitles(document.meta.hiddenSectionTitles);
+  if (document.meta.hiddenHero !== undefined && typeof document.meta.hiddenHero !== "boolean") {
+    throw new TypeError("Invalid hidden hero flag");
+  }
   validateInlineOverrides(document.meta.inlineText, "inline text", LIMITS.text);
   validateInlineOverrides(document.meta.inlineIcons, "inline icons", 100);
   validateCover(document.meta.heroCover, "meta hero cover");
@@ -72,6 +87,15 @@ export function validateDocument(document) {
   assertRecord(document.sections, "sections");
   for (const section of Object.keys(SECTION_TYPES)) validateSection(document.sections[section], section);
   return true;
+}
+
+function validateHiddenSectionTitles(value) {
+  if (value === undefined) return;
+  assertCollection(value, "hidden section titles", SECTION_NAMES.size);
+  const unique = new Set(value);
+  if (unique.size !== value.length || value.some((section) => !SECTION_NAMES.has(section))) {
+    throw new TypeError("Invalid hidden section titles");
+  }
 }
 
 function validateInlineOverrides(overrides, label, valueLimit) {
@@ -168,10 +192,12 @@ function validatePlace(place, ids) {
 
 function validateTextBlock(data, type) {
   assertTextFields(data, TEXT_FIELDS[type], `${type} data`);
+  if (type === "flight") assertOptionalTextFields(data, ["flightNumber", "aircraft"], type, LIMITS.label);
   if (type === "transfer") assertOptionalTextFields(data, ["originCity", "destinationCity", "stop", "details"], type);
   if (["flight", "transfer"].includes(type)) validateTransportBlockData(data, type);
   if (type === "stay-summary") assertOptionalTextFields(data, ["checkinTime", "checkoutTime"], type, LIMITS.label);
   if (type === "stay-summary") assertOptionalTextFields(data, ["mapUrl", "websiteUrl", "link"], type, LIMITS.url);
+  if (type === "stay-summary") validateStayPropertyPills(data.propertyPills);
   if (["link", "link-card"].includes(type)) assertText(data.url, `${type} URL`, LIMITS.url);
   if (type === "stay-summary") {
     assertDate(data.checkin, "stay-summary check-in date");
@@ -180,9 +206,32 @@ function validateTextBlock(data, type) {
   }
 }
 
+function validateTravelEssentials(data) {
+  assertTextFields(data, [
+    "title", "visa", "currency", "drivingSide", "plugType", "voltage", "frequency",
+    "language", "timeZone", "healthPrecautions", "vaccines",
+  ], "travel-essentials data");
+  validateAdditionalTravelFacts(data.additionalFacts);
+  if (!VISA_REQUIREMENTS.has(data.visa)) throw new TypeError("Invalid visa requirement");
+  if (!DRIVING_SIDES.has(data.drivingSide)) throw new TypeError("Invalid driving side");
+}
+
+function validateAdditionalTravelFacts(facts) {
+  if (facts === undefined) return;
+  assertCollection(facts, "additional travel facts", 24);
+  const ids = new Set();
+  for (const fact of facts) {
+    assertRecord(fact, "additional travel fact");
+    assertUniqueId(fact, ids, "additional travel fact");
+    assertText(fact.label, "additional travel fact label", LIMITS.label);
+    assertText(fact.value, "additional travel fact value", LIMITS.text);
+  }
+}
+
 function validateTransportBlockData(data, type) {
   assertOptionalTextFields(data, ["mapUrl", "websiteUrl"], type, LIMITS.url);
   assertOptionalTextFields(data, ["notes"], type);
+  if (data.notesVisible !== undefined && typeof data.notesVisible !== "boolean") throw new TypeError(`Invalid ${type} notes visibility`);
   validateTransportTiming(data, type);
   validateTransportCovers(data, type);
   validateTransportChoices(data, type);
@@ -209,8 +258,32 @@ function validateTransportChoices(data, type) {
 function validateFlightChoices(data) {
   if (data.serviceType !== undefined && !FLIGHT_SERVICE_TYPES.has(data.serviceType)) throw new TypeError("Invalid flight service type");
   assertOptionalInteger(data.stopCount, "flight stop count", 0, 9);
+  validateFlightSegments(data);
   if (data.serviceType === "layover" && (!Number.isInteger(data.stopCount) || data.stopCount < 1)) throw new TypeError("Invalid flight layover stop count");
   if (data.serviceType === "direct" && data.stopCount !== undefined && data.stopCount !== 0) throw new TypeError("Invalid direct flight stop count");
+}
+
+function validateFlightSegments(data) {
+  if (data.segments === undefined) return;
+  assertCollection(data.segments, "flight segments", 9);
+  if (data.serviceType === "direct" && data.segments.length) throw new TypeError("Invalid direct flight segments");
+  if (data.serviceType === "layover" && data.segments.length !== data.stopCount) throw new TypeError("Invalid flight segment count");
+  const ids = new Set();
+  for (const segment of data.segments) {
+    assertRecord(segment, "flight segment");
+    assertUniqueId(segment, ids, "flight segment");
+    assertTextFields(segment, [
+      "provider", "flightNumber", "aircraft", "origin", "originCity", "destination", "destinationCity",
+      "departure", "arrival", "departureDate", "arrivalDate", "departureTimeZone", "arrivalTimeZone",
+      "layoverDuration", "layoverNote",
+    ], "flight segment");
+    assertDate(segment.departureDate, "flight segment departure date");
+    assertDate(segment.arrivalDate, "flight segment arrival date");
+    assertDateOrder(segment.departureDate, segment.arrivalDate, "flight segment dates");
+    for (const field of ["departureTimeZone", "arrivalTimeZone"]) {
+      if (segment[field] && !isValidTimeZone(segment[field])) throw new TypeError(`Invalid flight segment ${field}`);
+    }
+  }
 }
 
 function assertOptionalInteger(value, label, minimum, maximum) {
@@ -224,6 +297,17 @@ function validateTransportCovers(data, type) {
   validateCover(data.destinationCover, `${type} destination cover`);
 }
 
+function validateStayPropertyPills(pills) {
+  if (pills === undefined) return;
+  assertCollection(pills, "stay property pills", 20);
+  const ids = new Set();
+  for (const pill of pills) {
+    assertRecord(pill, "stay property pill");
+    assertUniqueId(pill, ids, "stay property pill");
+    assertText(pill.label, "stay property pill label", LIMITS.label);
+    assertText(pill.iconKey, "stay property pill icon key", 100);
+  }
+}
 function validateStayAmenities(data) {
   assertText(data.title, "stay amenities title", LIMITS.label);
   assertCollection(data.groups, "stay amenities groups", 20);
@@ -290,6 +374,9 @@ function validateDay(data) {
   assertTextFields(data, ["date", "title", "notes"], "day data");
   assertDate(data.date, "day data date");
   validatePlaces(data.places);
+  for (const field of ["placesLabelVisible", "mealsLabelVisible"]) {
+    if (data[field] !== undefined && typeof data[field] !== "boolean") throw new TypeError(`Invalid day ${field}`);
+  }
   assertRecord(data.meals, "day meals");
   const ids = new Set();
   for (const meal of ["breakfast", "lunch", "dinner"]) validateFoodOptions(data.meals[meal], meal, ids);
@@ -317,6 +404,7 @@ function assertPriority(value, label) {
 
 function validateSavedPlaces(data) {
   assertText(data.title, "saved places title", LIMITS.label);
+  if (data.titleVisible !== undefined && typeof data.titleVisible !== "boolean") throw new TypeError("Invalid saved places title visibility");
   validatePlaces(data.places);
 }
 

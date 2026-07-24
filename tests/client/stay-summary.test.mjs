@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
+import { updateStayAmenityIcon } from "../../src/client/editor/inline-stay-editor.js";
 import { agendaConfig } from "../../src/client/sections/agenda.js";
 import { stayConfig } from "../../src/client/sections/stay.js";
 import { transportConfig } from "../../src/client/sections/transport.js";
@@ -8,7 +9,7 @@ import { createDefaultDocument } from "../../src/shared/default-document.mjs";
 import { validateDocument } from "../../src/shared/document-schema.mjs";
 
 test("section titles match the linked pill labels", () => {
-  assert.equal(transportConfig.title, "Itinerary");
+  assert.equal(transportConfig.title, "Transit");
   assert.equal(stayConfig.title, "Accommodation");
   assert.equal(agendaConfig.title, "Agenda");
 });
@@ -35,11 +36,13 @@ test("Stay summary renders editable times and Agenda-style safe links", () => {
   assert.match(view, /class="stay-time" data-inline-time-field="checkoutTime"[^>]*>11:00</);
   assert.equal((view.match(/class="stay-date-card/g) ?? []).length, 2);
   assert.equal((view.match(/class="stay-date-icon"/g) ?? []).length, 2);
-  assert.equal((view.match(/<div class="property-pills">[\s\S]*?<span>/g) ?? []).length, 1);
+  assert.match(view, /<div class="property-pills">[\s\S]*?class="property-pill"/);
   const propertyPills = view.match(/<div class="property-pills">([\s\S]*?)<\/div><div class="stay-dates">/)?.[1] ?? "";
-  assert.equal((propertyPills.match(/<span>/g) ?? []).length, 4);
+  assert.equal((propertyPills.match(/class="property-pill"/g) ?? []).length, 4);
   assert.doesNotMatch(propertyPills, /8 noites/);
-  assert.match(propertyPills, /2 banheiros/);
+  assert.match(propertyPills, /Entire holiday home/);
+  assert.match(propertyPills, /1 bathroom/);
+  assert.doesNotMatch(propertyPills, /Lorem ipsum/);
   assert.doesNotMatch(view, /stay-link/);
   assert.match(editor, /type="time" value="15:00" data-block-field="checkinTime"/);
   assert.match(editor, /type="time" value="11:00" data-block-field="checkoutTime"/);
@@ -81,9 +84,10 @@ test("Transport hero uses a bottom information deck while continuous section hea
 });
 
 test("Casa do Sol uses a 35/65 image and information split with the hero outline", async () => {
-  const [media, polish] = await Promise.all([
+  const [media, polish, inlineEdit] = await Promise.all([
     readFile("src/client/styles/media.css", "utf8"),
     readFile("src/client/styles/polish.css", "utf8"),
+    readFile("src/client/styles/inline-edit.css", "utf8"),
   ]);
   assert.match(media, /\.block-type-stay-summary \.block-frame\.has-cover[^}]+grid-template-columns:\s*minmax\(0,7fr\) minmax\(0,13fr\)/);
   assert.match(media, /\.block-type-stay-summary \.block-frame\.has-cover > \.block-cover[^}]+grid-column:\s*1/);
@@ -97,7 +101,7 @@ test("Casa do Sol uses a 35/65 image and information split with the hero outline
   assert.match(polish, /\.stay-date-icon svg\s*\{\s*width:\s*var\(--content-icon-glyph-size\);\s*height:\s*var\(--content-icon-glyph-size\)/);
   assert.match(polish, /\.stay-date-card\s*\{[^}]+border:\s*3px solid transparent[^}]+linear-gradient\(#FFFFFF,#FFFFFF\) padding-box[^}]+var\(--section-outline-gradient\) border-box/);
   assert.match(polish, /\.stay-date-card small,\s*\.stay-date-card strong,\s*\.stay-date-card \.stay-time\s*\{\s*color:\s*#303030/);
-  assert.match(polish, /\.stay-checkin \.stay-date-icon,\s*\.stay-checkout \.stay-date-icon\s*\{[^}]+--icon-surface-background:\s*var\(--icon-yellow-background\)[^}]+--icon-surface-colour:\s*var\(--icon-yellow-colour\)[^}]+border-color:\s*var\(--icon-yellow-colour\)[^}]+background:\s*var\(--icon-yellow-background\)[^}]+color:\s*var\(--icon-yellow-colour\)/);
+  assert.match(polish, /\.stay-checkin \.stay-date-icon,\s*\.stay-checkout \.stay-date-icon\s*\{[^}]+--icon-surface-background:\s*var\(--icon-fourth-background\)[^}]+--icon-surface-colour:\s*var\(--icon-fourth-colour\)[^}]+border-color:\s*var\(--icon-fourth-colour\)[^}]+background:\s*var\(--icon-fourth-background\)[^}]+color:\s*var\(--icon-fourth-colour\)/);
   assert.match(polish, /\.stay-copy h3\s*\{[^}]+background:\s*var\(--destination-gradient\)[^}]+-webkit-text-fill-color:\s*transparent/);
   assert.match(polish, /\.stay-title-row\s*\{[^}]+align-items:\s*center/);
   assert.match(polish, /\.stay-title-row \.entry-links\s*\{[^}]+align-self:\s*center/);
@@ -107,12 +111,16 @@ test("Casa do Sol uses a 35/65 image and information split with the hero outline
   assert.match(polish, /\.property-pills > span\s*\{[^}]+width:\s*100%[^}]+min-height:\s*calc\(var\(--content-icon-size\) \+ 14px\)[^}]+white-space:\s*nowrap/);
   assert.match(polish, /@container \(max-width:620px\)\s*\{[\s\S]+?\.property-pills\s*\{\s*grid-template-columns:\s*repeat\(2,minmax\(0,1fr\)\)/);
   assert.match(polish, /@container \(max-width:360px\)\s*\{\s*\.property-pills\s*\{\s*grid-template-columns:\s*minmax\(0,1fr\)/);
+  assert.match(inlineEdit, /body\.is-inline-editing \.property-pills\s*\{\s*grid-template-columns:\s*repeat\(2,minmax\(0,1fr\)\)/);
+  assert.match(inlineEdit, /body\.is-inline-editing \.property-pill\s*\{[^}]+display:\s*grid[^}]+grid-template-columns:\s*26px minmax\(0,1fr\) 28px[^}]+white-space:\s*normal/);
+  assert.match(inlineEdit, /\.property-pill > \[data-inline-stay-field="pill-label"\]\s*\{[^}]+padding:\s*0[^}]+border:\s*0[^}]+border-radius:\s*0[^}]+background:\s*transparent[^}]+box-shadow:\s*none[^}]+overflow-wrap:\s*anywhere[^}]+white-space:\s*normal/);
+  assert.match(inlineEdit, /\.property-pill > \.inline-stay-remove\s*\{[^}]+position:\s*static[^}]+transform:\s*none/);
 });
 
 test("Amenities use structured category headers and a consistent list layout", () => {
   const block = createDefaultDocument().sections.stay.find((entry) => entry.type === "stay-amenities");
   const view = stayConfig.render(block, false);
-  assert.match(view, /class="amenity-card-header"/);
+  assert.match(view, /class="amenity-card-header feature-card-header"/);
   assert.doesNotMatch(view, /<small>Amenities<\/small>/);
   assert.match(view, /<h3>Listing Highlights<\/h3>/);
   assert.equal((view.match(/class="amenity-group-heading"/g) ?? []).length, block.data.groups.length);
@@ -127,6 +135,20 @@ test("Amenities use structured category headers and a consistent list layout", (
   assert.match(view, /Video games/);
   assert.match(view, /Cable and satellite TV/);
   assert.ok(block.data.groups.every((group) => group.items.length === 4));
-  assert.equal((view.match(/class="amenity-dot"/g) ?? []).length, block.data.groups.flatMap((group) => group.items).length);
-  assert.doesNotMatch(view, /amenity-card-emblem|class="amenity-icon"/);
+  const itemCount = block.data.groups.flatMap((group) => group.items).length;
+  assert.equal((view.match(/class="amenity-icon"/g) ?? []).length, itemCount);
+  assert.equal((view.match(/data-amenity-item-icon/g) ?? []).length, itemCount);
+  assert.doesNotMatch(view, /amenity-dot|amenity-card-emblem/);
+});
+
+test("Amenities persist a trusted icon choice on the selected highlight", () => {
+  const document = createDefaultDocument();
+  const block = document.sections.stay.find((entry) => entry.type === "stay-amenities");
+  const group = block.data.groups[0];
+  const item = group.items[0];
+
+  assert.equal(updateStayAmenityIcon(document, { blockId: block.id, groupId: group.id, itemId: item.id, iconKey: "toy" }), true);
+  assert.equal(item.iconKey, "toy");
+  assert.equal(updateStayAmenityIcon(document, { blockId: block.id, groupId: group.id, itemId: item.id, iconKey: "not-an-icon" }), false);
+  assert.equal(item.iconKey, "toy");
 });

@@ -1,0 +1,272 @@
+/* Information uses the same softly elevated fact language as the
+ * accommodation summary, with compact reference-style safety rows. */
+
+.section-transport-grid > .section-heading {
+  min-width: 0;
+  grid-column: 1 / -1;
+  margin: 4px 0 0;
+}
+
+.travel-essentials-card {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: 0 20px 54px rgba(82,78,65,.12),0 4px 14px rgba(82,78,65,.06);
+}
+
+.travel-essentials-card::before {
+  position: absolute;
+  z-index: 2;
+  inset: 0 auto 0 0;
+  width: 5px;
+  background: var(--brand-gradient-vertical);
+  content: "";
+}
+
+.travel-essentials-card-body {
+  padding: 24px;
+}
+
+.travel-essential-facts {
+  display: grid;
+  grid-template-columns: repeat(4,minmax(0,1fr));
+  gap: 10px;
+}
+
+.travel-essential-pill {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  min-height: 66px;
+  grid-template-columns: 36px minmax(0,1fr);
+  align-items: center;
+  gap: 9px;
+  padding: 10px;
+  border: 0;
+  border-radius: 17px;
+  background: color-mix(in srgb,var(--surface) 78%,var(--surface-soft));
+  box-shadow: 0 7px 18px rgba(82,78,65,.07);
+}
+
+.travel-essential-icon {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: var(--icon-outline-width) solid currentColor;
+  border-radius: 11px;
+  background: var(--date-icon-background);
+  color: var(--date-icon-colour);
+}
+
+.travel-essential-icon svg,
+.travel-health-icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.travel-essential-pill:nth-child(4n+2) .travel-essential-icon {
+  background: var(--duration-icon-background);
+  color: var(--duration-icon-colour);
+}
+
+.travel-essential-pill:nth-child(4n+3) .travel-essential-icon {
+  background: var(--transport-icon-background);
+  color: var(--transport-icon-colour);
+}
+
+.travel-essential-pill:nth-child(4n+4) .travel-essential-icon {
+  background: var(--icon-fourth-background);
+  color: var(--icon-fourth-colour);
+}
+
+.travel-essential-copy,
+.travel-health-copy {
+  min-width: 0;
+}
+
+.travel-essential-copy small,
+.travel-essential-copy strong {
+  display: block;
+}
+
+.travel-essential-copy small,
+.travel-health-copy small {
+  color: var(--muted);
+  font-size: var(--text-caption);
+  font-weight: 700;
+  letter-spacing: .02em;
+  text-transform: none;
+}
+
+.travel-essential-copy small {
+  margin-bottom: 3px;
+}
+
+.travel-essential-copy strong,
+.travel-health-copy > span {
+  overflow-wrap: anywhere;
+  color: var(--text);
+  font-size: var(--text-small);
+  line-height: 1.35;
+}
+
+.travel-health {
+  display: grid;
+  grid-template-columns: minmax(0,1fr);
+  gap: 0;
+  margin-top: 18px;
+  border-top: 1px solid color-mix(in srgb,var(--line) 76%,transparent);
+}
+
+.travel-health-line {
+  display: flex;
+  min-width: 0;
+  min-height: 54px;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 4px;
+  border: 0;
+  border-bottom: 1px solid color-mix(in srgb,var(--line) 76%,transparent);
+  border-radius: 0;
+  background: transparent;
+}
+
+.travel-health-copy {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 5px 10px;
+}
+
+.travel-health-copy small {
+  flex: 0 0 auto;
+}
+
+.travel-health-copy > span {
+  flex: 1 1 220px;
+  font-weight: var(--font-weight-regular);
+}
+
+.travel-health-icon {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  place-items: center;
+  color: var(--date-icon-colour);
+}
+
+.travel-health-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.travel-health-line:nth-child(2) .travel-health-icon {
+  color: var(--duration-icon-colour);
+}
+.travel-essential-choice {
+  display: none;
+}
+
+body.is-inline-editing .travel-essential-choice-view {
+  display: none;
+}
+
+body.is-inline-editing .travel-essential-choice {
+  display: block;
+}
+
+.travel-essential-choice select {
+  width: 100%;
+  min-height: 32px;
+  padding: 4px 25px 4px 7px;
+  border: var(--icon-outline-width) solid color-mix(in srgb,var(--date-icon-colour) 60%,var(--line));
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--text-small);
+}
+
+/* Empty planning messages are Notes, including in dark mode. Their only
+ * special responsibility is spanning the collection's complete grid row. */
+:root .day-card .place-list > .day-note.place-empty-banner,
+:root .day-card .meal-grid > .day-note.meal-empty-banner,
+:root .saved-place-group .saved-grid > .day-note.saved-place-empty {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  height: auto;
+  min-height: 42px;
+  grid-column: 1 / -1 !important;
+  margin: 0;
+  padding: 11px 13px;
+  border: 0;
+  border-left: 4px solid var(--accent);
+  border-radius: 12px;
+  background: var(--card-wash-gradient);
+  box-shadow: none;
+  color: var(--text);
+  font-size: var(--text-small);
+  font-weight: var(--font-weight-regular);
+  line-height: 1.5;
+  text-align: start;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+body.is-inline-editing .travel-essential-add {
+  width: 100%;
+  margin-top: 13px;
+}
+
+body.is-inline-editing .travel-essential-pill-custom .travel-essential-copy {
+  padding-right: 5px;
+}
+
+body.is-inline-editing [data-inline-essential-fact-field][contenteditable="true"] {
+  min-width: 2ch;
+  border-radius: 4px;
+  outline: 1px dashed color-mix(in srgb,var(--icon-teal-colour) 64%,var(--line));
+  outline-offset: 2px;
+}
+
+body.is-inline-editing [data-inline-essential-fact-field][contenteditable="true"]:is(:hover,:focus) {
+  outline-style: solid;
+  background: color-mix(in srgb,var(--surface) 88%,var(--icon-teal-background));
+}
+
+@container (max-width: 1000px) {
+  .travel-essential-facts {
+    grid-template-columns: repeat(2,minmax(0,1fr));
+  }
+}
+
+@container (max-width: 620px) {
+  .travel-essential-facts {
+    grid-template-columns: repeat(2,minmax(0,1fr));
+  }
+
+  .travel-health {
+    grid-template-columns: 1fr;
+  }
+}
+
+@container (max-width: 300px) {
+  .travel-essentials-card {
+    padding: 20px 16px;
+  }
+
+  .travel-essential-facts {
+    grid-template-columns: 1fr;
+  }
+}

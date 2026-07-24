@@ -83,7 +83,7 @@ export class GramadoStore {
 
       CREATE TABLE IF NOT EXISTS attachments (
         id TEXT PRIMARY KEY,
-        section TEXT NOT NULL CHECK (section IN ('transport', 'stay', 'agenda')),
+        section TEXT NOT NULL CHECK (section IN ('transport', 'stay', 'agenda', 'places')),
         block_id TEXT NOT NULL,
         name TEXT NOT NULL,
         content_type TEXT NOT NULL,
@@ -109,6 +109,7 @@ export class GramadoStore {
       CREATE INDEX IF NOT EXISTS custom_templates_name
         ON custom_templates (name COLLATE NOCASE, id);
     `);
+    this.migrateAttachmentSections();
     this.database.prepare(`
       INSERT OR IGNORE INTO document_state
         (singleton, document_json, revision, updated_at)
@@ -117,10 +118,41 @@ export class GramadoStore {
     this.migrateStoredDocument(now);
   }
 
+
+  migrateAttachmentSections() {
+    const definition = this.database.prepare(`
+      SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'attachments'
+    `).get()?.sql ?? "";
+    if (definition.includes("'places'")) return;
+    this.runTransaction(() => {
+      this.database.exec(`
+        DROP INDEX IF EXISTS attachments_block;
+        ALTER TABLE attachments RENAME TO attachments_before_places;
+        CREATE TABLE attachments (
+          id TEXT PRIMARY KEY,
+          section TEXT NOT NULL CHECK (section IN ('transport', 'stay', 'agenda', 'places')),
+          block_id TEXT NOT NULL,
+          name TEXT NOT NULL,
+          content_type TEXT NOT NULL,
+          byte_size INTEGER NOT NULL CHECK (byte_size > 0),
+          preview_kind TEXT CHECK (preview_kind IS NULL OR preview_kind IN ('pdf', 'image', 'text', 'audio', 'video')),
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL
+        ) STRICT;
+        INSERT INTO attachments SELECT * FROM attachments_before_places;
+        DROP TABLE attachments_before_places;
+        CREATE INDEX attachments_block ON attachments (section, block_id, created_at, id);
+      `);
+    });
+  }
+
   migrateStoredDocument(now) {
     this.runTransaction(() => {
       const state = this.getDocument();
       const sourceVersion = state.document.schemaVersion;
+      const movedPlaceBlockIds = sourceVersion < 13
+        ? state.document.sections.agenda.filter((block) => block.type === "saved-places").map((block) => block.id)
+        : [];
       const migrated = migrateDocument(state.document);
       if (migrated.schemaVersion === sourceVersion) return;
       this.database.prepare(`
@@ -131,6 +163,8 @@ export class GramadoStore {
         UPDATE document_state SET document_json = ?, revision = revision + 1, updated_at = ?
         WHERE singleton = 1
       `).run(JSON.stringify(migrated), now);
+      const moveAttachment = this.database.prepare("UPDATE attachments SET section = 'places' WHERE section = 'agenda' AND block_id = ?" );
+      movedPlaceBlockIds.forEach((blockId) => moveAttachment.run(blockId));
       this.migrateStoredTemplates({ sourceVersion, range: migrated.meta, now });
       this.database.prepare(`
         INSERT OR IGNORE INTO schema_migrations (version, applied_at) VALUES (?, ?)

@@ -116,6 +116,7 @@ body.is-editing .section-pill-label[contenteditable="true"]:focus {
   outline-offset: 2px;
 }
 
+
 /* Compact card-wide rhythm: labels remain above their controls, while excess
  * padding and vertical gaps are removed from the editing workspace. */
 body.is-editing .block-frame > .edit-form {

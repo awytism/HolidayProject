@@ -36,9 +36,19 @@ export function renderPlace(place, options = {}) {
     showMissing: options.showMissingLinks === true,
   });
   const priority = normalizePriority(place.priority);
-  const heading = `<span class="agenda-place-heading"><span class="place-media"><span>${escapeHtml(initials(place.name))}</span>${image}</span><span class="agenda-place-heading-copy"><span class="place-copy"><strong>${escapeHtml(place.name)}</strong></span>${renderPriorityBadge(priority)}</span></span>`;
+  const titleIcon = renderPlaceTitleIcon(place, options.placeIconKey);
+  const heading = `<span class="agenda-place-heading"><span class="place-media"><span>${escapeHtml(initials(place.name))}</span>${image}</span><span class="agenda-place-heading-copy"><span class="place-copy"><span class="place-title-line">${titleIcon}<strong>${escapeHtml(place.name)}</strong></span></span>${renderPriorityBadge(priority)}</span></span>`;
   const footer = routes || links ? `<div class="agenda-place-footer">${links}${routes}</div>` : "";
-  return `<div class="place-row priority-${priority}${hasComment ? " has-comment" : ""}${routes ? " has-routes" : ""}" data-inline-image-entry="place" data-inline-image-id="${escapeHtml(place.id)}"><div class="agenda-place-main">${heading}${comment}</div>${footer}</div>`;
+  return `<div class="place-row priority-${priority}${hasComment ? " has-comment" : ""}${routes ? " has-routes" : ""}" data-place-id="${escapeHtml(place.id)}" data-inline-image-entry="place" data-inline-image-id="${escapeHtml(place.id)}">${renderOptionalControls(options)}<div class="agenda-place-main">${heading}${comment}</div>${footer}</div>`;
+}
+
+export function renderPlaceTitleIcon(place, overrideKey = `place-title:${place.id}`) {
+  const key = escapeHtml(overrideKey);
+  const icon = renderIcon("home").replace("<svg ", `<svg class="place-title-icon-glyph" data-inline-icon-key="${key}" data-inline-icon-name="home" `);
+  return `<span class="place-title-icon">${icon}</span>`;
+}
+function renderOptionalControls(options) {
+  return options.controls ?? "";
 }
 
 export function renderPlaceEditor(place, options = {}) {

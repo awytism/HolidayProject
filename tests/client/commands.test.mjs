@@ -98,12 +98,12 @@ test("syncs matching meal and Other Places cards while keeping their description
   ));
   const [meal, options] = Object.entries(day.data.meals).find(([, entries]) => entries.length);
   const food = options[0];
-  const saved = document.sections.agenda.find((block) => block.type === "saved-places");
+  const saved = document.sections.places.find((block) => block.type === "saved-places");
   const place = saved.data.places[0];
   place.name = food.name;
   place.comment = "A fuller place description";
   const foodContext = { section: "agenda", blockId: day.id, meal, foodId: food.id };
-  const placeContext = { section: "agenda", blockId: saved.id, placeId: place.id };
+  const placeContext = { section: "places", blockId: saved.id, placeId: place.id };
 
   updateFoodOption(document, { ...foodContext, property: "comment" }, "A shared description");
   assert.equal(place.comment, "A fuller place description");

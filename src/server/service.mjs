@@ -520,7 +520,7 @@ function removedBlocks(previous, next) {
 }
 
 function normalizeSection(value) {
-  if (!["transport", "stay", "agenda"].includes(value)) {
+  if (!["transport", "stay", "agenda", "places"].includes(value)) {
     throw new ApiError(400, "invalid_section", "Trip Section is invalid");
   }
   return value;
@@ -595,14 +595,14 @@ function serializeTemplate(template, maxBytes) {
 
 function validateTemplateShape(template) {
   const scope = template.sectionScope;
-  if (!["all", "transport", "stay", "agenda"].includes(scope)) {
+  if (!["all", "transport", "stay", "agenda", "places"].includes(scope)) {
     throw new ApiError(400, "invalid_template", "Template section scope is invalid");
   }
   if (!template.block || typeof template.block !== "object") {
     throw new ApiError(400, "invalid_template", "Template block is required");
   }
   try {
-    const sections = scope === "all" ? ["transport", "stay", "agenda"] : [scope];
+    const sections = scope === "all" ? ["transport", "stay", "agenda", "places"] : [scope];
     sections.forEach((section) => validateCustomBlock(template.block, section));
   } catch (error) {
     throw new ApiError(400, "invalid_template", error.message);

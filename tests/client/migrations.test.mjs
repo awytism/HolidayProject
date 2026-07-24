@@ -17,9 +17,9 @@ test("normalizes a persisted v3 server document before loading every trip sectio
   assert.equal(result.migrated, true);
   assert.equal(result.serverMigrated, true);
   assert.equal(result.legacyMigrated, false);
-  assert.equal(result.document.schemaVersion, 12);
+  assert.equal(result.document.schemaVersion, 15);
   assert.deepEqual([result.document.meta.startDate, result.document.meta.endDate], ["2026-10-24", "2026-11-01"]);
-  assert.equal(result.document.sections.transport[0].data.date, "2026-10-24");
+  assert.equal(result.document.sections.transport.find((block) => block.type === "flight").data.date, "2026-10-24");
   assert.deepEqual([staySummary.data.checkin, staySummary.data.checkout], ["2026-10-24", "2026-11-01"]);
   assert.deepEqual(agendaDays.slice(0, 2).map((block) => block.data.date), ["2026-10-24", "2026-10-25"]);
   assert.equal(validateDocument(result.document), true);

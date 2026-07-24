@@ -1,7 +1,8 @@
 import { escapeHtml, initials, safeUrl } from "../utils/html.js";
 import { formatClockTime, formatDisplayDate } from "../../shared/date-utils.mjs";
 import { formatDurationUnits } from "../../shared/duration-utils.mjs";
-import { renderActionIcon, renderIcon, TRUSTED_ICON_KEYS } from "../ui/icon-registry.js";
+import { ICON_PICKER_CATEGORIES, iconPickerLabel, renderActionIcon, renderIcon } from "../ui/icon-registry.js";
+import { propertyPills } from "../editor/inline-stay-editor.js";
 import { createGenericBlock, GENERIC_TYPES, renderGenericBlock } from "./generic.js";
 import { editField, renderEntryImage, renderEntryLinks } from "./shared.js";
 
@@ -9,18 +10,18 @@ export const stayConfig = {
   eyebrow: "Accommodation",
   title: "Accommodation",
   addTypes: [
-    { type: "stay-summary", label: "Resumo da Hospedagem" },
-    { type: "stay-amenities", label: "Comodidades" },
+    { type: "stay-summary", label: "Accommodation Summary" },
+    { type: "stay-amenities", label: "Listing Highlights" },
     { type: "link", label: "Link" },
-    { type: "note", label: "Descrição" },
+    { type: "note", label: "Note" },
   ],
   createBlock(type) {
     if (GENERIC_TYPES.has(type)) return createGenericBlock(type, "stay");
-    if (type === "stay-amenities") return baseBlock(type, { title: "Comodidades", groups: [newAmenityGroup()] });
+    if (type === "stay-amenities") return baseBlock(type, { title: "Listing Highlights", groups: [newAmenityGroup()] });
     if (type === "stay-anatomy") return baseBlock(type, { title: "Distribuição da Casa", area: "Adicionar área", spaces: [newSpace()] });
     if (type === "essentials") return baseBlock(type, { title: "Novas Informações Essenciais", items: [{ label: "Detalhe", value: "Adicionar valor" }] });
     if (type === "link") return baseBlock(type, { title: "Link Útil", description: "Adicionar contexto", url: "https://" });
-    return baseBlock(type, { name: "Nova Hospedagem", subtitle: "Adicionar descrição", checkin: "", checkinTime: "", checkout: "", checkoutTime: "", nights: "Adicionar noites", mapUrl: "", websiteUrl: "" });
+    return baseBlock(type, { name: "Nova Hospedagem", subtitle: "Adicionar descrição", checkin: "", checkinTime: "", checkout: "", checkoutTime: "", nights: "Adicionar noites", mapUrl: "", websiteUrl: "", propertyPills: [] });
   },
   render(block, editing, context = {}) {
     if (GENERIC_TYPES.has(block.type)) return renderGenericBlock(block, editing);
@@ -50,26 +51,42 @@ function renderSummary(block, context) {
   const links = renderEntryLinks({ mapUrl: data.mapUrl, websiteUrl: data.websiteUrl || data.link }, data.name, attachmentButton, { showMissing: true });
   const checkinTime = data.checkinTime || "TBD";
   const checkoutTime = data.checkoutTime || "TBD";
-  const propertyPills = [
-    ["home", "3 quartos"],
-    ["bed", "4 camas"],
-    ["amenity-bathtub", "2 banheiros"],
-    ["mountain", "90 m²"],
-  ].map(([icon, label]) => `<span><i aria-hidden="true">${renderIcon(icon)}</i>${escapeHtml(label)}</span>`).join("");
-  return `<article class="content-block stay-summary stay-summary-clean"><div class="stay-copy"><div class="stay-title-row"><div class="stay-title-copy"><h3>${escapeHtml(data.name)}</h3><p>${escapeHtml(data.subtitle)}</p></div>${links}</div><div class="property-pills">${propertyPills}</div><div class="stay-dates"><div class="stay-date-card stay-checkin"><span class="stay-date-icon" aria-hidden="true" data-inline-date-action="block" data-inline-date-field="checkin" data-inline-date-label="Check-In Date">${renderIcon("calendar")}</span><div><small>Entrada</small><span class="stay-date-details"><strong data-inline-date-action="block" data-inline-date-field="checkin" data-inline-date-label="Check-In Date">${escapeHtml(formatDisplayDate(data.checkin))}</strong><span class="stay-date-separator" aria-hidden="true">·</span><span class="stay-time" data-inline-time-field="checkinTime" data-inline-time-label="Check-In Time">${escapeHtml(formatClockTime(checkinTime))}</span></span></div></div><div class="stay-date-card stay-checkout"><span class="stay-date-icon" aria-hidden="true" data-inline-date-action="block" data-inline-date-field="checkout" data-inline-date-label="Check-Out Date">${renderIcon("calendar")}</span><div><small>Saída</small><span class="stay-date-details"><strong data-inline-date-action="block" data-inline-date-field="checkout" data-inline-date-label="Check-Out Date">${escapeHtml(formatDisplayDate(data.checkout))}</strong><span class="stay-date-separator" aria-hidden="true">·</span><span class="stay-time" data-inline-time-field="checkoutTime" data-inline-time-label="Check-Out Time">${escapeHtml(formatClockTime(checkoutTime))}</span></span></div></div></div></div></article>`;
+  const pills = propertyPills(data);
+  const propertyPillMarkup = pills.map(renderPropertyPill).join("");
+  const pillClass = pills.length ? "property-pills" : "property-pills is-empty";
+  return `<article class="content-block stay-summary stay-summary-clean"><div class="stay-copy"><div class="stay-title-row"><div class="stay-title-copy"><h3>${escapeHtml(data.name)}</h3><p>${escapeHtml(data.subtitle)}</p></div>${links}</div><div class="${pillClass}">${propertyPillMarkup}${renderStayAddButton("add-pill", "Add property detail")}</div><div class="stay-dates"><div class="stay-date-card stay-checkin"><span class="stay-date-icon" aria-hidden="true" data-inline-date-action="block" data-inline-date-field="checkin" data-inline-date-label="Check-In Date">${renderIcon("calendar")}</span><div><small>Entrada</small><span class="stay-date-details"><strong data-inline-date-action="block" data-inline-date-field="checkin" data-inline-date-label="Check-In Date">${escapeHtml(formatDisplayDate(data.checkin))}</strong><span class="stay-date-separator" aria-hidden="true">·</span><span class="stay-time" data-inline-time-field="checkinTime" data-inline-time-label="Check-In Time">${escapeHtml(formatClockTime(checkinTime))}</span></span></div></div><div class="stay-date-card stay-checkout"><span class="stay-date-icon" aria-hidden="true" data-inline-date-action="block" data-inline-date-field="checkout" data-inline-date-label="Check-Out Date">${renderIcon("calendar")}</span><div><small>Saída</small><span class="stay-date-details"><strong data-inline-date-action="block" data-inline-date-field="checkout" data-inline-date-label="Check-Out Date">${escapeHtml(formatDisplayDate(data.checkout))}</strong><span class="stay-date-separator" aria-hidden="true">·</span><span class="stay-time" data-inline-time-field="checkoutTime" data-inline-time-label="Check-Out Time">${escapeHtml(formatClockTime(checkoutTime))}</span></span></div></div></div></div></article>`;
+}
+
+function renderPropertyPill(pill) {
+  return `<span class="property-pill" data-stay-pill-id="${escapeHtml(pill.id)}"><i aria-hidden="true">${renderIcon(pill.iconKey)}</i><span data-inline-stay-field="pill-label" data-stay-pill-id="${escapeHtml(pill.id)}" data-inline-ignore>${escapeHtml(pill.label)}</span>${renderStayRemoveButton("remove-pill", "Remove property detail", { stayPillId: pill.id })}</span>`;
 }
 
 function renderAmenities(data) {
   const groups = data.groups.map(renderAmenityGroup).join("");
-  return `<article class="content-block amenity-card"><header class="amenity-card-header"><h3>${escapeHtml(data.title)}</h3></header><div class="amenity-groups">${groups}</div></article>`;
+  const empty = groups ? "" : `<p class="stay-nested-empty">No highlights added.</p>`;
+  return `<article class="content-block amenity-card"><header class="amenity-card-header feature-card-header"><h3>${escapeHtml(data.title)}</h3></header><div class="amenity-groups${groups ? "" : " is-empty"}">${groups}${empty}</div>${renderStayAddButton("add-group", "Add highlight group")}</article>`;
 }
 
 function renderAmenityGroup(group) {
   const categoryIcon = amenityGroupIconKey(group);
-  const items = group.items.map((item) => `<li><span class="amenity-dot" aria-hidden="true"></span><span>${escapeHtml(item.label)}</span></li>`).join("");
-  return `<section class="amenity-group"><header class="amenity-group-heading"><span class="amenity-group-icon" data-icon="${escapeHtml(categoryIcon)}" aria-hidden="true">${renderIcon(categoryIcon)}</span><h4>${escapeHtml(group.label)}</h4></header><ul>${items}</ul></section>`;
+  const items = group.items.map((item) => `<li data-amenity-item-id="${escapeHtml(item.id)}"><span class="amenity-icon" data-amenity-item-icon data-amenity-group-id="${escapeHtml(group.id)}" data-amenity-item-id="${escapeHtml(item.id)}">${renderIcon(amenityItemIconKey(item))}</span><span data-inline-stay-field="item-label" data-amenity-group-id="${escapeHtml(group.id)}" data-amenity-item-id="${escapeHtml(item.id)}" data-inline-ignore>${escapeHtml(item.label)}</span>${renderStayRemoveButton("remove-item", "Remove highlight", { amenityGroupId: group.id, amenityItemId: item.id })}</li>`).join("");
+  const empty = items ? "" : `<li class="stay-nested-empty">No highlights added.</li>`;
+  return `<section class="amenity-group" data-amenity-group-id="${escapeHtml(group.id)}"><header class="amenity-group-heading"><span class="amenity-group-icon" data-icon="${escapeHtml(categoryIcon)}" aria-hidden="true">${renderIcon(categoryIcon)}</span><h4 data-inline-stay-field="group-label" data-amenity-group-id="${escapeHtml(group.id)}" data-inline-ignore>${escapeHtml(group.label)}</h4>${renderStayRemoveButton("remove-group", "Remove highlight group", { amenityGroupId: group.id })}</header><ul>${items}${empty}</ul>${renderStayAddButton("add-item", "Add highlight", { amenityGroupId: group.id })}</section>`;
 }
 
+function renderStayRemoveButton(action, label, data = {}) {
+  const attributes = stayControlAttributes(data);
+  return `<button class="inline-stay-remove" type="button" data-inline-stay-action="${action}"${attributes} data-inline-ignore aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}">${renderActionIcon("trash")}<span class="sr-only">${escapeHtml(label)}</span></button>`;
+}
+
+function renderStayAddButton(action, label, data = {}) {
+  const attributes = stayControlAttributes(data);
+  return `<button class="inline-stay-add" type="button" data-inline-stay-action="${action}"${attributes} data-inline-ignore>${renderActionIcon("plus")}<span>${escapeHtml(label)}</span></button>`;
+}
+
+function stayControlAttributes(data) {
+  return Object.entries(data).map(([name, value]) => ` data-${name.replace(/[A-Z]/gu, (letter) => `-${letter.toLowerCase()}`)}="${escapeHtml(value)}"`).join("");
+}
 function amenityGroupIconKey(group) {
   const category = `${group.id ?? ""} ${group.label ?? ""}`.toLowerCase();
   return [
@@ -84,7 +101,7 @@ function amenityGroupIconKey(group) {
 
 function renderDistances(data) {
   const items = sortDistanceItems(data.items).map(renderDistanceItem).join("");
-  return `<article class="content-block distance-card"><header><small>A partir da Casa do Sol</small><h3>${escapeHtml(data.title)}</h3></header><div class="distance-list">${items}</div></article>`;
+  return `<article class="content-block distance-card"><header><small>From your accommodation</small><h3>${escapeHtml(data.title)}</h3></header><div class="distance-list">${items}</div></article>`;
 }
 
 function renderDistanceItem(item, index) {
@@ -160,7 +177,7 @@ function renderAmenitiesEditor(data) {
 }
 
 function renderAmenityGroupEditor(group) {
-  const selected = group.items.map((item) => `<span data-amenity-item="${escapeHtml(item.id)}">${renderIcon(amenityItemIconKey(item))} ${escapeHtml(item.label)} <button type="button" data-amenity-action="delete-item" aria-label="Remover ${escapeHtml(item.label)}">×</button></span>`).join("");
+  const selected = group.items.map((item) => `<span data-amenity-item="${escapeHtml(item.id)}">${renderIcon(amenityItemIconKey(item))} ${escapeHtml(item.label)} <button type="button" data-amenity-action="delete-item" aria-label="Remover ${escapeHtml(item.label)}" title="Remover ${escapeHtml(item.label)}">${renderActionIcon("trash")}<span class="sr-only">Remover ${escapeHtml(item.label)}</span></button></span>`).join("");
   return `<section class="amenity-group-editor" data-amenity-group="${escapeHtml(group.id)}"><div class="collection-title"><input value="${escapeHtml(group.label)}" data-amenity-group-label aria-label="Nome do grupo"><button type="button" data-amenity-action="delete-group">Excluir Grupo</button></div><div class="amenity-selected">${selected}</div><label>Buscar Comodidades<input type="search" data-amenity-search placeholder="Buscar cozinha, vistas, estacionamento..."></label><div class="amenity-results" role="listbox"></div>${renderCustomAmenity()}</section>`;
 }
 
@@ -170,12 +187,8 @@ function amenityItemIconKey(item) {
 }
 
 function renderCustomAmenity() {
-  const options = TRUSTED_ICON_KEYS.map((key) => `<option value="${escapeHtml(key)}" ${key === "home" ? "selected" : ""}>${escapeHtml(iconLabel(key))}</option>`).join("");
+  const options = ICON_PICKER_CATEGORIES.map((category) => `<optgroup label="${escapeHtml(category.label)}">${category.keys.map((key) => `<option value="${escapeHtml(key)}" ${key === "home" ? "selected" : ""}>${escapeHtml(iconPickerLabel(key))}</option>`).join("")}</optgroup>`).join("");
   return `<details class="custom-amenity"><summary>Adicionar Destaque Personalizado</summary><div><label>Texto do Destaque<input data-custom-amenity-label maxlength="500" placeholder="ex.: saída mais tarde"></label><label>Ícone<span class="custom-icon-choice"><span class="custom-icon-preview" aria-hidden="true">${renderIcon("home")}</span><select data-custom-amenity-icon aria-label="Ícone do destaque">${options}</select></span></label><button type="button" data-amenity-action="add-custom">Adicionar Destaque</button></div></details>`;
-}
-
-function iconLabel(key) {
-  return key.split("-").map((part) => part[0].toUpperCase() + part.slice(1)).join(" ");
 }
 
 function renderDistancesEditor(data) {
@@ -209,12 +222,12 @@ function distanceActionButton(action, label, icon) {
 }
 
 function renderAnatomyEditor(data) {
-  const spaces = data.spaces.map((space) => `<section class="space-editor" data-space-id="${escapeHtml(space.id)}"><div class="collection-title"><input value="${escapeHtml(space.label)}" data-space-field="label" aria-label="Nome do espaço"><button type="button" data-anatomy-action="delete-space">Excluir Espaço</button></div>${space.beds.map((bed) => `<div class="bed-editor" data-bed-id="${escapeHtml(bed.id)}"><input value="${escapeHtml(bed.label)}" data-bed-field="label" aria-label="Tipo de cama"><input type="number" min="1" max="20" value="${bed.quantity}" data-bed-field="quantity" aria-label="Quantidade de camas"><button type="button" data-anatomy-action="delete-bed">×</button></div>`).join("")}<button class="inline-add" type="button" data-anatomy-action="add-bed">+ Adicionar Cama</button></section>`).join("");
+  const spaces = data.spaces.map((space) => `<section class="space-editor" data-space-id="${escapeHtml(space.id)}"><div class="collection-title"><input value="${escapeHtml(space.label)}" data-space-field="label" aria-label="Nome do espaço"><button type="button" data-anatomy-action="delete-space">Excluir Espaço</button></div>${space.beds.map((bed) => `<div class="bed-editor" data-bed-id="${escapeHtml(bed.id)}"><input value="${escapeHtml(bed.label)}" data-bed-field="label" aria-label="Tipo de cama"><input type="number" min="1" max="20" value="${bed.quantity}" data-bed-field="quantity" aria-label="Quantidade de camas"><button type="button" data-anatomy-action="delete-bed" aria-label="Excluir cama" title="Excluir cama">${renderActionIcon("trash")}<span class="sr-only">Excluir cama</span></button></div>`).join("")}<button class="inline-add" type="button" data-anatomy-action="add-bed">+ Adicionar Cama</button></section>`).join("");
   return `<div class="content-block edit-form anatomy-editor">${editField("Título", "title", data.title)}${editField("Área", "area", data.area)}${spaces}<button class="inline-add" type="button" data-anatomy-action="add-space">+ Adicionar Quarto</button></div>`;
 }
 
 function renderEssentialsEditor(data) {
-  const rows = data.items.map((item, index) => `<div class="list-edit-row two-fields" data-item-index="${index}"><input value="${escapeHtml(item.label)}" data-list-property="label" aria-label="Rótulo"><input value="${escapeHtml(item.value)}" data-list-property="value" aria-label="Valor"><button class="mini-action" type="button" data-list-action="delete" aria-label="Excluir item">×</button></div>`).join("");
+  const rows = data.items.map((item, index) => `<div class="list-edit-row two-fields" data-item-index="${index}"><input value="${escapeHtml(item.label)}" data-list-property="label" aria-label="Rótulo"><input value="${escapeHtml(item.value)}" data-list-property="value" aria-label="Valor"><button class="mini-action" type="button" data-list-action="delete" aria-label="Excluir item" title="Excluir item">${renderActionIcon("trash")}<span class="sr-only">Excluir item</span></button></div>`).join("");
   return `<div class="content-block edit-form"><label>Título<input value="${escapeHtml(data.title)}" data-block-field="title"></label><div class="list-editor">${rows}</div><button class="inline-add" type="button" data-list-action="add">+ Adicionar Item</button></div>`;
 }
 

@@ -13,11 +13,12 @@ export function updateLinkedAgendaEntry(document, source, sourceKind, property, 
 }
 
 function linkedEntries(document, sourceKind) {
-  const meals = document.sections.agenda
+  const blocks = Object.values(document.sections).flat();
+  const meals = blocks
     .filter((block) => block.type === "day")
     .flatMap((block) => Object.values(block.data.meals).flat());
   if (sourceKind === "saved") return meals;
-  const saved = document.sections.agenda
+  const saved = blocks
     .filter((block) => block.type === "saved-places")
     .flatMap((block) => block.data.places);
   return [...meals, ...saved];

@@ -1,4 +1,4 @@
-import { createDefaultDocument, createLegacyStayDistancesBlock, createStayAnatomyBlock } from "./default-document.mjs";
+import { createDefaultDocument, createLegacyStayDistancesBlock, createStayAnatomyBlock, createTravelEssentialsBlock } from "./default-document.mjs";
 import {
   inclusiveDayCount,
   isIsoDate,
@@ -19,6 +19,9 @@ const DOCUMENT_MIGRATIONS = new Map([
   [9, migrateV9ToV10],
   [10, migrateV10ToV11],
   [11, migrateV11ToV12],
+  [12, migrateV12ToV13],
+  [13, migrateV13ToV14],
+  [14, migrateV14ToV15],
 ]);
 
 export function migrateDocument(document) {
@@ -163,14 +166,55 @@ export function migrateV11ToV12(document) {
   if (document.schemaVersion !== 11) throw new TypeError("Expected document schema version 11");
 
   const candidate = structuredClone(document);
-  candidate.schemaVersion = DOCUMENT_SCHEMA_VERSION;
+  candidate.schemaVersion = 12;
   assertSections(candidate.sections);
   const defaults = defaultMealRouteTimes();
   for (const block of candidate.sections.agenda) upgradeMealRouteTimes(block, defaults);
-  validateDocument(candidate);
   return candidate;
 }
 
+
+export function migrateV12ToV13(document) {
+  assertDocumentVersion(document);
+  if (document.schemaVersion === DOCUMENT_SCHEMA_VERSION) return validatedClone(document);
+  if (document.schemaVersion !== 12) throw new TypeError("Expected document schema version 12");
+
+  const candidate = structuredClone(document);
+  assertSections(candidate.sections);
+  const savedPlaces = candidate.sections.agenda.filter((block) => block.type === "saved-places");
+  candidate.sections.agenda = candidate.sections.agenda.filter((block) => block.type !== "saved-places");
+  candidate.sections.places = [...(Array.isArray(candidate.sections.places) ? candidate.sections.places : []), ...savedPlaces];
+  candidate.schemaVersion = 13;
+  return candidate;
+}
+
+export function migrateV13ToV14(document) {
+  assertDocumentVersion(document);
+  if (document.schemaVersion === DOCUMENT_SCHEMA_VERSION) return validatedClone(document);
+  if (document.schemaVersion !== 13) throw new TypeError("Expected document schema version 13");
+
+  const candidate = structuredClone(document);
+  assertSections(candidate.sections);
+  if (!candidate.sections.transport.some((block) => block.type === "travel-essentials")) {
+    candidate.sections.transport.unshift(createTravelEssentialsBlock(availableId(candidate.sections.transport, "travel-essentials")));
+  }
+  candidate.schemaVersion = 14;
+  return candidate;
+}
+
+export function migrateV14ToV15(document) {
+  assertDocumentVersion(document);
+  if (document.schemaVersion === DOCUMENT_SCHEMA_VERSION) return validatedClone(document);
+  if (document.schemaVersion !== 14) throw new TypeError("Expected document schema version 14");
+
+  const candidate = structuredClone(document);
+  if (["Your Holiday Name", "Nome das suas férias"].includes(candidate.meta?.brandName)) {
+    candidate.meta.brandName = "Itinerary";
+  }
+  candidate.schemaVersion = DOCUMENT_SCHEMA_VERSION;
+  validateDocument(candidate);
+  return candidate;
+}
 const MEAL_ROUTE_DISTANCE_FIELDS = Object.freeze([
   "drivingDistance",
   "cyclingDistance",

@@ -1,8 +1,13 @@
+import { syncFlightSegments, updateFlightSegmentField } from "../sections/flight-segments.js";
+
 const CONTROL_SELECTOR = "[data-inline-transport-field]";
+const ACTION_SELECTOR = "[data-inline-transport-action]";
+const SEGMENT_CONTROL_SELECTOR = "[data-inline-flight-segment-field]";
 const STRUCTURED_VIEWS = "[data-inline-transport-view]";
 
-export function createInlineTransportEditor({ store, root = document }) {
+export function createInlineTransportEditor({ store, render, root = document }) {
   root.addEventListener("input", handleInput, true);
+  root.addEventListener("click", handleClick, true);
 
   return { apply };
 
@@ -14,22 +19,77 @@ export function createInlineTransportEditor({ store, root = document }) {
         && control.closest(".transport-stop-count-control")?.classList.contains("is-hidden");
       control.disabled = !editing || hiddenStopCount;
     }
+    for (const control of root.querySelectorAll(SEGMENT_CONTROL_SELECTOR)) {
+      if (control.matches("input")) control.disabled = !editing;
+      else {
+        control.contentEditable = String(editing);
+        control.classList.toggle("is-inline-flight-segment-editable", editing);
+        if (editing) {
+          control.setAttribute("role", "textbox");
+          control.spellcheck = true;
+        } else {
+          control.removeAttribute("role");
+          control.removeAttribute("spellcheck");
+        }
+      }
+    }
   }
 
   function handleInput(event) {
+    if (handleSegmentInputEvent(event)) return;
     const control = event.target.closest?.(CONTROL_SELECTOR);
     if (!control || !store.getState().editing) return;
     const blockElement = control.closest(".editor-block[data-block-id]");
     if (!blockElement) return;
     const section = blockElement.closest("[data-section-root]")?.dataset.sectionRoot;
-    if (section !== "transport") return;
+    if (!section) return;
 
+    store.setActive(section);
     store.mutate((tripDocument) => {
-      const block = tripDocument.sections.transport.find((entry) => entry.id === blockElement.dataset.blockId);
+      const block = tripDocument.sections[section]?.find((entry) => entry.id === blockElement.dataset.blockId);
       if (!block || !updateTransportStructuredField(block, control.dataset.inlineTransportField, control.value)) return;
       clearStructuredTextOverrides(tripDocument.meta, blockElement, control.dataset.inlineTransportField);
     });
     syncDependentControls(blockElement, control.dataset.inlineTransportField, control.value);
+    if (["serviceType", "stopCount"].includes(control.dataset.inlineTransportField)) render?.();
+  }
+
+  function handleSegmentInputEvent(event) {
+    const control = event.target.closest?.(SEGMENT_CONTROL_SELECTOR);
+    if (!control) return false;
+    handleSegmentInput(control);
+    return true;
+  }
+
+  function handleSegmentInput(control) {
+    if (!store.getState().editing) return;
+    const blockElement = control.closest(".editor-block[data-block-id]");
+    const section = blockElement?.closest("[data-section-root]")?.dataset.sectionRoot;
+    if (!blockElement || !section) return;
+    const index = Number(control.dataset.flightSegmentIndex);
+    const value = control.matches("input") ? control.value : control.textContent;
+    store.setActive(section);
+    store.mutate((tripDocument) => {
+      const block = tripDocument.sections[section]?.find((entry) => entry.id === blockElement.dataset.blockId);
+      updateFlightSegmentField(block, index, control.dataset.inlineFlightSegmentField, value);
+    });
+  }
+
+  function handleClick(event) {
+    const button = event.target.closest?.(ACTION_SELECTOR);
+    if (!button || !store.getState().editing) return;
+    const blockElement = button.closest(".editor-block[data-block-id]");
+    const section = blockElement?.closest("[data-section-root]")?.dataset.sectionRoot;
+    if (!blockElement || !section) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const visible = button.dataset.inlineTransportAction === "restore-notes";
+    store.setActive(section);
+    store.mutate((tripDocument) => {
+      const block = tripDocument.sections[section]?.find((entry) => entry.id === blockElement.dataset.blockId);
+      updateTransportNotesVisibility(block, visible);
+    });
+    render?.();
   }
 }
 
@@ -57,6 +117,7 @@ function updateServiceType(block, value) {
   const serviceType = value === "layover" ? "layover" : "direct";
   block.data.serviceType = serviceType;
   block.data.stopCount = serviceType === "layover" ? Math.max(1, transportStopCount(block.data)) : 0;
+  syncFlightSegments(block.data, block.data.stopCount);
   updateLegacyStopCopy(block.data);
   return true;
 }
@@ -65,12 +126,19 @@ function updateStopCount(block, value) {
   if (block.type !== "flight") return false;
   block.data.serviceType = "layover";
   block.data.stopCount = boundedInteger(value, 1, 9, 1);
+  syncFlightSegments(block.data, block.data.stopCount);
   updateLegacyStopCopy(block.data);
   return true;
 }
 
 function updateSeatCount(block, value) {
   block.data.seatCount = boundedInteger(value, 0, 20, 0);
+  return true;
+}
+
+export function updateTransportNotesVisibility(block, visible) {
+  if (!block?.data || typeof visible !== "boolean") return false;
+  block.data.notesVisible = visible;
   return true;
 }
 

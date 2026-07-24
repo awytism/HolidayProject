@@ -10,54 +10,66 @@ import {
 import { editField, newNote, renderEntryImage, renderEntryLinks, renderNote } from "./shared.js";
 import { createGenericBlock, GENERIC_TYPES, renderGenericBlock } from "./generic.js";
 import { renderActionIcon, renderIcon } from "../ui/icon-registry.js";
+import { renderFlightCard } from "./flight-card.js";
+import { createTravelEssentialsBlock, renderTravelEssentials } from "./travel-essentials.js";
 
 const planeIcon = renderIcon("airplane");
 const busIcon = '<svg viewBox="0 0 24 24"><path d="M5 16V6c0-2 1.7-3 7-3s7 1 7 3v10m-14 0h14v3H5v-3Zm2-9h10M8 19v2m8-2v2"/></svg>';
 
 export const transportConfig = {
-  eyebrow: "Itinerary",
-  title: "Itinerary",
+  eyebrow: "Transit",
+  title: "Transit",
   addTypes: [
-    { type: "flight", label: "Voo" },
-    { type: "transfer", label: "Transfer Terrestre" },
-    { type: "note", label: "Nota" },
+    { type: "travel-essentials", label: "Information" },
+    { type: "flight", label: "Transport" },
   ],
   createBlock(type) {
     if (GENERIC_TYPES.has(type)) return createGenericBlock(type, "transport");
     if (type === "note") return newNote("transport");
-    const flight = type === "flight";
-    return {
-      id: `transport-${crypto.randomUUID()}`,
-      type,
-      cover: null,
-      data: {
-        direction: "Outbound", directionMode: "outbound", date: "", provider: flight ? "Companhia Aérea" : "Empresa",
-        origin: "Origem", originCity: "", destination: "Destino", destinationCity: "",
-        departure: "00:00", arrival: "00:00", duration: "0 m",
-        departureDate: "", arrivalDate: "",
-        departureTimeZone: "America/Sao_Paulo", arrivalTimeZone: "America/Sao_Paulo",
-        stop: flight ? "Direct" : "Transfer Terrestre", serviceType: flight ? "direct" : undefined,
-        stopCount: flight ? 0 : undefined, details: "Adicionar detalhes", seats: "Adicionar assentos", seatCount: flight ? 1 : 0,
-        notes: "",
-        mapUrl: "", websiteUrl: "",
-        providerCover: null, originCover: null, destinationCover: null,
-      },
-    };
+    if (type === "travel-essentials") return createTravelEssentialsBlock();
+    return createTransportRouteBlock(type);
   },
   render(block, editing, context = {}) {
     if (GENERIC_TYPES.has(block.type)) return renderGenericBlock(block, editing);
     if (block.type === "note") return renderNote(block, editing);
+    if (block.type === "travel-essentials") return renderTravelEssentials(block);
     return editing ? renderTransportEditor(block) : renderTransportCard(block, context);
   },
 };
 
+function createTransportRouteBlock(type) {
+const flight = type === "flight";
+return {
+  id: `transport-${crypto.randomUUID()}`,
+  type,
+  cover: null,
+  data: {
+    direction: "Outbound", directionMode: "outbound", date: "", provider: flight ? "Airline" : "Provider",
+    flightNumber: flight ? "Flight number" : undefined, aircraft: flight ? "Aircraft type" : undefined,
+    origin: "Departure airport or city (CODE)", originCity: "Origin city",
+    destination: "Arrival airport or city (CODE)", destinationCity: "Destination city",
+    departure: "00:00", arrival: "00:00", duration: "0 m",
+    departureDate: "", arrivalDate: "",
+    departureTimeZone: "America/Sao_Paulo", arrivalTimeZone: "America/Sao_Paulo",
+    stop: flight ? "Direct" : "Transfer Terrestre", serviceType: flight ? "direct" : undefined,
+    stopCount: flight ? 0 : undefined, segments: [], details: "Adicionar detalhes", seats: "Adicionar assentos", seatCount: flight ? 1 : 0,
+    notes: "",
+    notesVisible: true,
+    mapUrl: "", websiteUrl: "",
+    providerCover: null, originCover: null, destinationCover: null,
+  },
+};
+
+}
+
 function renderTransportCard(block, context) {
+  if (block.type === "flight") return renderFlightCard(block, context);
   const data = block.data;
   const transfer = block.type === "transfer";
   const directionMode = normaliseDirectionMode(data.directionMode ?? data.direction);
   const direction = localisedDirection(directionMode);
   const attachmentButton = context.attachments?.renderDownloadButton(block.id, context.section, "Download transport attachment")
-    ?? `<button class="transport-attachment-button" type="button" data-transport-attachment data-section="transport" data-block-id="${escapeHtml(block.id)}" aria-label="Download transport attachment" title="Download transport attachment">${renderActionIcon("file")}</button>`;
+    ?? `<button class="transport-attachment-button" type="button" data-transport-attachment data-section="${escapeHtml(context.section ?? "transport")}" data-block-id="${escapeHtml(block.id)}" aria-label="Download transport attachment" title="Download transport attachment">${renderActionIcon("file")}</button>`;
   const links = renderEntryLinks(data, `${data.origin} para ${data.destination}`, attachmentButton, { showMissing: true });
   const notes = escapeHtml(data.notes || "Nenhuma observação adicional.");
   return `<article class="content-block transport-card ${transfer ? "transfer" : "flight"}"><div class="block-topline"><div class="provider" data-inline-image-field="providerCover">${renderProviderVisual(block)}<div><small><span class="transport-direction-view" data-inline-transport-view="directionMode">${escapeHtml(direction)}</span>${renderDirectionEditor(directionMode)}<span aria-hidden="true" data-inline-static> · </span><span class="transport-date" data-inline-date-action="block" data-inline-date-field="date" data-inline-date-label="Transport Date">${escapeHtml(formatDisplayDate(data.date))}</span></small><strong>${escapeHtml(data.provider)}</strong></div></div>${links}</div><div class="route-grid"><div class="route-timeline">${renderRouteEndpoint(data, "origin")}<div class="route-line"><span></span><div class="route-mode"><i>${transportIcon(transfer)}</i><small class="route-duration" data-inline-static>${escapeHtml(deriveTransportDuration(data))}</small></div><span></span></div>${renderRouteEndpoint(data, "destination")}</div></div><div class="detail-strip"><span class="transport-details">${renderServiceDetails(block)}<br>${escapeHtml(data.details)}</span>${renderSeats(data)}</div><p class="day-note transport-note"><strong data-inline-static>Observações:</strong> ${notes}</p></article>`;

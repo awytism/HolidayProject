@@ -4,12 +4,10 @@ const TRANSPORT_CARD_TYPES = new Set(["flight", "transfer"]);
 
 export function deriveTripStats(tripDocument) {
   const meta = tripDocument?.meta ?? {};
-  const transport = Array.isArray(tripDocument?.sections?.transport)
-    ? tripDocument.sections.transport
-    : [];
+  const blocks = Object.values(tripDocument?.sections ?? {}).flat();
   return {
     days: inclusiveDayCount(meta.startDate, meta.endDate),
-    legs: transport.filter((block) => TRANSPORT_CARD_TYPES.has(block?.type)).length,
+    legs: blocks.filter((block) => TRANSPORT_CARD_TYPES.has(block?.type)).length,
   };
 }
 

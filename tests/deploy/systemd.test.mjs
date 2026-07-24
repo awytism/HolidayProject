@@ -116,6 +116,12 @@ test("Windows exit probes listeners and reports enumeration failure", async () =
   assert.match(windowsExit, /\/api\/document/);
 });
 
+test("Windows exit recognizes current and future document schemas", async () => {
+  const windowsExit = await readProjectFile("exit.bat");
+  assert.match(windowsExit, /schemaVersion -ge 3/);
+  assert.doesNotMatch(windowsExit, /schemaVersion -eq \d+/);
+});
+
 test("Windows exit retains and signals one process handle with bounded waits", async () => {
   const windowsExit = await readProjectFile("exit.bat");
   assert.match(windowsExit, /function Get-RetainedTarget/);

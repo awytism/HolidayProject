@@ -32,6 +32,7 @@ export function createStore() {
     mutate(operation) {
       if (!state.editing) throw new Error("An edit session is not active");
       operation(state.draft);
+      delete state.draft.meta.placeholderMode;
     },
     commit(document, revision) {
       state.document = document;
